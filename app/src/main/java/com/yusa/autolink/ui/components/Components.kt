@@ -1,208 +1,232 @@
 package com.yusa.autolink.ui.components
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.yusa.autolink.data.model.ButtonVariant
-import com.yusa.autolink.data.model.ChipType
+import androidx.compose.ui.unit.sp
+import com.yusa.autolink.data.model.Business
+import com.yusa.autolink.data.model.Service
+import com.yusa.autolink.data.model.Vehicle
 import com.yusa.autolink.ui.theme.*
 
-val CardShape = RoundedCornerShape(16.dp)
-val ButtonShape = RoundedCornerShape(12.dp)
-val InputShape = RoundedCornerShape(12.dp)
-val ChipShape = RoundedCornerShape(8.dp)
-
+// ============================================================
+// ARAÇ KARTI
+// Kullanıcının kayıtlı aracını mavi kart üzerinde gösterir.
+// Kullanım: HomeScreen, ProfileScreen
+// ============================================================
 @Composable
-fun AutoLinkButton(
+fun VehicleCard(vehicle: Vehicle, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape    = RoundedCornerShape(16.dp),
+        colors   = CardDefaults.cardColors(containerColor = PrimaryBlue)
+    ) {
+        Row(
+            modifier          = Modifier.padding(20.dp).fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Filled.DirectionsCar, null, tint = Color.White, modifier = Modifier.size(48.dp))
+            Spacer(modifier = Modifier.width(16.dp))
+            Column {
+                Text("Kayıtlı Aracım", fontSize = 12.sp, color = Color.White.copy(alpha = 0.8f))
+                Text(
+                    text       = "${vehicle.brand} ${vehicle.model}",
+                    fontSize   = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color      = Color.White
+                )
+                Text(
+                    text     = "${vehicle.year} · ${vehicle.plate} · ${vehicle.fuelType}",
+                    fontSize = 13.sp,
+                    color    = Color.White.copy(alpha = 0.8f)
+                )
+            }
+        }
+    }
+}
+
+// ============================================================
+// HİZMET KARTI (küçük, yatay listede)
+// ServiceDetailScreen ve eski HomeScreen için uyumluluk amaçlı.
+// ============================================================
+@Composable
+fun ServiceCard(service: Service, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier.width(150.dp).clickable { onClick() },
+        shape    = RoundedCornerShape(16.dp),
+        colors   = CardDefaults.cardColors(containerColor = SurfaceWhite),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier            = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(PrimaryBlue.copy(alpha = 0.10f), RoundedCornerShape(12.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(getServiceIcon(service.iconName), null, tint = PrimaryBlue, modifier = Modifier.size(28.dp))
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(service.name, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text("~₺${service.averagePrice}", fontSize = 12.sp, color = TextSecondary)
+        }
+    }
+}
+
+// ============================================================
+// İŞLETME KARTI
+// İşletme adı, puan, mesafe, fiyat, vale, müsaitlik, onay rozeti gösterir.
+// Kullanım: BusinessListScreen, HomeScreen
+// ============================================================
+@Composable
+fun BusinessCard(
+    business: Business,
+    onAppointmentClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier  = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+        shape     = RoundedCornerShape(16.dp),
+        colors    = CardDefaults.cardColors(containerColor = SurfaceWhite),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+
+            // Satır 1: İşletme adı + yıldız puan
+            Row(
+                modifier              = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment     = Alignment.CenterVertically
+            ) {
+                Text(
+                    text       = business.name,
+                    fontSize   = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color      = TextPrimary,
+                    modifier   = Modifier.weight(1f)
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.Star, null, tint = RatingYellow, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(business.rating.toString(), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Satır 2: Mesafe + fiyat
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.LocationOn, null, tint = TextSecondary, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(business.distanceText, fontSize = 12.sp, color = TextSecondary)
+                }
+                Text("₺${business.startingPrice}'den başlar", fontSize = 12.sp, color = TextSecondary)
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Satır 3: Onaylı + Vale + Müsaitlik rozetleri
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (business.isVerified) {
+                    TrustBadge("Onaylı İşletme", VerifiedBadgeColor.copy(alpha = 0.10f), VerifiedBadgeColor)
+                }
+                if (business.hasValet) {
+                    TrustBadge("Vale", Color(0xFF6A1B9A).copy(alpha = 0.10f), Color(0xFF6A1B9A))
+                }
+                // Müsaitlik durumu her zaman gösterilir
+                val availColor = if (business.isAvailable) SuccessGreen else Color(0xFFD32F2F)
+                TrustBadge(
+                    text             = if (business.isAvailable) "Müsait" else "Meşgul",
+                    backgroundColor  = availColor.copy(alpha = 0.10f),
+                    textColor        = availColor
+                )
+            }
+
+            // Satır 4: Yerinde hizmet rozeti (ayrı satır - fazla yer kaplamaz)
+            if (business.onSiteService) {
+                Spacer(modifier = Modifier.height(6.dp))
+                TrustBadge(
+                    text            = "Yerinde Hizmet",
+                    backgroundColor = Color(0xFFE65100).copy(alpha = 0.10f),
+                    textColor       = Color(0xFFE65100)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Randevu al butonu
+            Button(
+                onClick  = onAppointmentClick,
+                modifier = Modifier.fillMaxWidth(),
+                colors   = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
+                shape    = RoundedCornerShape(12.dp)
+            ) {
+                Text("Randevu Al", fontWeight = FontWeight.SemiBold)
+            }
+        }
+    }
+}
+
+// ============================================================
+// GÜVEN ROZETİ
+// Küçük renkli etiket - onaylı, vale, müsait vb. için
+// ============================================================
+@Composable
+fun TrustBadge(text: String, backgroundColor: Color, textColor: Color) {
+    Box(
+        modifier = Modifier
+            .background(color = backgroundColor, shape = RoundedCornerShape(8.dp))
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    ) {
+        Text(text = text, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = textColor)
+    }
+}
+
+// ============================================================
+// ANA BUTON
+// Ekranlardaki birincil eylem butonu.
+// ============================================================
+@Composable
+fun PrimaryButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    variant: ButtonVariant = ButtonVariant.Primary
+    enabled: Boolean = true
 ) {
-    when (variant) {
-        ButtonVariant.Primary -> Button(
-            onClick = onClick,
-            enabled = enabled,
-            shape = ButtonShape,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Blue500,
-                contentColor = TextPrimary,
-                disabledContainerColor = NavyContainerHigh,
-                disabledContentColor = TextHint
-            ),
-            modifier = modifier.height(52.dp)
-        ) {
-            Text(text, style = MaterialTheme.typography.labelLarge)
-        }
-
-        ButtonVariant.Outline -> OutlinedButton(
-            onClick = onClick,
-            enabled = enabled,
-            shape = ButtonShape,
-            border = BorderStroke(1.dp, if (enabled) Blue500 else DividerColor),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = Blue500),
-            modifier = modifier.height(52.dp)
-        ) {
-            Text(text, style = MaterialTheme.typography.labelLarge)
-        }
-
-        ButtonVariant.Ghost -> TextButton(
-            onClick = onClick,
-            enabled = enabled,
-            modifier = modifier.height(52.dp)
-        ) {
-            Text(text, style = MaterialTheme.typography.labelLarge, color = Blue300)
-        }
-    }
-}
-
-@Composable
-fun AutoLinkTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    modifier: Modifier = Modifier,
-    isPassword: Boolean = false,
-    keyboardType: KeyboardType = KeyboardType.Text,
-    leadingIcon: ImageVector? = null,
-    errorMessage: String? = null,
-    singleLine: Boolean = true
-) {
-    var passwordVisible by remember { mutableStateOf(false) }
-
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label) },
-        modifier = modifier.fillMaxWidth(),
-        singleLine = singleLine,
-        isError = errorMessage != null,
-        shape = InputShape,
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = Blue500,
-            unfocusedBorderColor = DividerColor,
-            errorBorderColor = ErrorRed,
-            focusedLabelColor = Blue300,
-            unfocusedLabelColor = TextHint,
-            cursorColor = Blue500,
-            focusedTextColor = TextPrimary,
-            unfocusedTextColor = TextPrimary,
-            focusedContainerColor = NavyContainer,
-            unfocusedContainerColor = NavyContainer,
-            errorContainerColor = NavyContainer
-        ),
-        visualTransformation = if (isPassword && !passwordVisible)
-            PasswordVisualTransformation() else VisualTransformation.None,
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-        leadingIcon = leadingIcon?.let { { Icon(it, contentDescription = null, tint = TextHint) } },
-        trailingIcon = if (isPassword) {
-            {
-                IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                    Icon(
-                        if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                        contentDescription = null,
-                        tint = TextHint
-                    )
-                }
-            }
-        } else null,
-        supportingText = errorMessage?.let { { Text(it, color = ErrorRed) } }
-    )
-}
-
-@Composable
-fun AutoLinkCard(
-    modifier: Modifier = Modifier,
-    onClick: (() -> Unit)? = null,
-    content: @Composable ColumnScope.() -> Unit
-) {
-    val baseModifier = modifier
-        .clip(CardShape)
-        .background(NavySurface)
-        .border(1.dp, DividerColor.copy(alpha = 0.5f), CardShape)
-        .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-
-    Column(modifier = baseModifier.padding(16.dp), content = content)
-}
-
-@Composable
-fun StatusChip(text: String, type: ChipType) {
-    val (bg, fg) = when (type) {
-        ChipType.Info -> Blue500.copy(alpha = 0.15f) to Blue300
-        ChipType.Warning -> Orange500.copy(alpha = 0.15f) to Orange300
-        ChipType.Success -> SuccessGreen.copy(alpha = 0.15f) to SuccessGreen
-        ChipType.Error -> ErrorRed.copy(alpha = 0.15f) to ErrorRed
-    }
-    Box(
-        modifier = Modifier
-            .clip(ChipShape)
-            .background(bg)
-            .padding(horizontal = 10.dp, vertical = 4.dp)
+    Button(
+        onClick  = onClick,
+        modifier = modifier.fillMaxWidth().height(56.dp),
+        enabled  = enabled,
+        colors   = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
+        shape    = RoundedCornerShape(16.dp)
     ) {
-        Text(text, style = MaterialTheme.typography.labelSmall, color = fg)
+        Text(text = text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
-@Composable
-fun SectionHeader(
-    title: String,
-    modifier: Modifier = Modifier,
-    actionText: String? = null,
-    onAction: (() -> Unit)? = null
-) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(title, style = MaterialTheme.typography.titleMedium, color = TextPrimary)
-        if (actionText != null && onAction != null) {
-            Text(
-                actionText,
-                style = MaterialTheme.typography.labelLarge,
-                color = Blue300,
-                modifier = Modifier.clickable(onClick = onAction)
-            )
-        }
-    }
-}
-
-@Composable
-fun QuickActionButton(
-    icon: ImageVector,
-    label: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier
-            .clip(CardShape)
-            .background(NavyContainer)
-            .clickable(onClick = onClick)
-            .padding(vertical = 16.dp, horizontal = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Icon(icon, contentDescription = label, tint = Blue300, modifier = Modifier.size(24.dp))
-        Text(label, style = MaterialTheme.typography.labelSmall, color = TextSecondary)
-    }
+// iconName değerini Material Icon'a çevirir
+fun getServiceIcon(iconName: String): ImageVector = when (iconName) {
+    "wash"     -> Icons.Filled.LocalCarWash
+    "build"    -> Icons.Filled.Build
+    "settings" -> Icons.Filled.Settings
+    "search"   -> Icons.Filled.Search
+    else       -> Icons.Filled.DirectionsCar
 }

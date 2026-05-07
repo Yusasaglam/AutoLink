@@ -1,39 +1,27 @@
 package com.yusa.autolink.ui.theme
 
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 
-private val AutoLinkColorScheme = darkColorScheme(
-    primary = Blue500,
-    onPrimary = TextPrimary,
-    primaryContainer = NavyContainerHigh,
-    onPrimaryContainer = Blue300,
-    secondary = Orange500,
-    onSecondary = NavyBg,
-    secondaryContainer = NavyContainerHigh,
-    onSecondaryContainer = Orange300,
-    background = NavyBg,
-    onBackground = TextPrimary,
-    surface = NavySurface,
-    onSurface = TextPrimary,
-    surfaceVariant = NavyContainer,
-    onSurfaceVariant = TextSecondary,
-    surfaceContainer = NavyContainer,
-    surfaceContainerHigh = NavyContainerHigh,
-    surfaceContainerHighest = NavyContainerHighest,
-    outline = TextHint,
-    outlineVariant = DividerColor,
-    error = ErrorRed,
-    errorContainer = ErrorContainer,
-    onError = NavyBg
+// OtoGüven uygulaması için açık (light) renk şeması
+private val OtoGuvenColorScheme = lightColorScheme(
+    primary          = PrimaryBlue,
+    onPrimary        = SurfaceWhite,
+    background       = BackgroundLight,
+    onBackground     = TextPrimary,
+    surface          = SurfaceWhite,
+    onSurface        = TextPrimary,
+    secondary        = SuccessGreen,
+    onSecondary      = SurfaceWhite,
 )
 
+// Tüm uygulamada kullanılan Compose tema sarmalayıcısı
 @Composable
 fun AutoLinkTheme(content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = AutoLinkColorScheme,
-        typography = Typography,
-        content = content
+        colorScheme = OtoGuvenColorScheme,
+        typography  = Typography,
+        content     = content
     )
 }

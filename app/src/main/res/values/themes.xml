@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
+    <!-- OtoGüven XML tema - pencere arka planı açık beyaz -->
     <style name="Theme.AutoLink" parent="android:Theme.Material.NoActionBar">
-        <item name="android:windowBackground">#0C1324</item>
-        <item name="android:statusBarColor">#0C1324</item>
-        <item name="android:navigationBarColor">#0C1324</item>
+        <item name="android:windowBackground">#F5F7FA</item>
+        <item name="android:statusBarColor">#1565C0</item>
+        <item name="android:navigationBarColor">#F5F7FA</item>
     </style>
 </resources>
