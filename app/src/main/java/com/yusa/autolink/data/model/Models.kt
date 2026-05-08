@@ -1,73 +1,88 @@
 package com.yusa.autolink.data.model
 
-// İşletme türü - yıkama mı bakım mı?
-enum class BusinessType { WASHING, MAINTENANCE }
+enum class UserType { VEHICLE_OWNER, SERVICE_PROVIDER }
 
-// Kullanıcı hesap türü - kayıt ekranında seçilir
-enum class AccountType { CUSTOMER, BUSINESS }
-
-// Randevu durumu - listede her kartın sağ üstünde rozet olarak gösterilir
-enum class AppointmentStatus { CONFIRMED, PENDING, COMPLETED }
-
-// Araç modeli
 data class Vehicle(
-    val id:       Int,
-    val brand:    String,
-    val model:    String,
-    val year:     Int,
-    val plate:    String,
-    val fuelType: String,
-    val engine:   String = ""   // Motor bilgisi (örn: "1.5 dCi")
-)
+    val id: String,
+    val brand: String,
+    val model: String,
+    val plate: String,
+    val year: Int,
+    val fuelLevel: Int = 0,
+    val mileage: Int = 0
+) {
+    val displayName: String get() = "$brand $model"
 
-// Hizmet modeli (ServiceDetailScreen için geriye dönük uyumluluk)
-data class Service(
-    val id:           Int,
-    val name:         String,
-    val description:  String,
-    val averagePrice: Int,
-    val duration:     String,
-    val iconName:     String
-)
+    val formattedMileage: String get() {
+        if (mileage <= 0) return "—"
+        return buildString {
+            val s = mileage.toString()
+            s.forEachIndexed { i, c ->
+                if (i > 0 && (s.length - i) % 3 == 0) append('.')
+                append(c)
+            }
+            append(" km")
+        }
+    }
+}
 
-// İşletme modeli
-data class Business(
-    val id:            Int,
-    val name:          String,
-    val rating:        Float,
-    val distanceKm:    Float,       // Mesafe (km) - filtreleme/sıralama için
-    val distanceText:  String,      // Mesafe gösterimi ("1.2 km")
-    val startingPrice: Int,         // Başlangıç fiyatı (TL)
-    val isVerified:    Boolean,     // OtoGüven onaylı işletme
-    val address:       String,
-    val hasValet:      Boolean,     // Vale hizmeti var mı?
-    val onSiteService: Boolean,     // Yerinde hizmet veriyor mu?
-    val isAvailable:   Boolean,     // Şu an müsait mi?
-    val type:          BusinessType // Hizmet türü
-)
-
-// Randevu modeli
-data class Appointment(
-    val id:           Int,
+data class BusinessProfile(
+    val id: String,
     val businessName: String,
-    val serviceName:  String,
-    val date:         String,
-    val time:         String,
-    val totalPrice:   Int,
-    val vehicleName:  String,
-    val status:       AppointmentStatus = AppointmentStatus.CONFIRMED
-)
-
-// Demo kullanıcı modeli
-data class User(
-    val name:  String,
+    val ownerName: String,
+    val address: String,
     val phone: String,
-    val email: String
+    val services: List<String>,
+    val isAuthorized: Boolean
+) {
+    fun toServiceCenter() = ServiceCenter(
+        id = id,
+        name = businessName,
+        address = address.ifBlank { "Adres belirtilmedi" },
+        rating = 0f,
+        reviewCount = 0,
+        distance = "—",
+        distanceKm = Float.MAX_VALUE,
+        isOpen = true,
+        isAuthorized = isAuthorized,
+        services = services,
+        isNew = true
+    )
+}
+
+data class ServiceCenter(
+    val id: String,
+    val name: String,
+    val address: String,
+    val rating: Float,
+    val reviewCount: Int,
+    val distance: String,
+    val distanceKm: Float,
+    val isOpen: Boolean,
+    val isAuthorized: Boolean,
+    val services: List<String>,
+    val isNew: Boolean = false
 )
 
-// Onboarding sayfası modeli
-data class OnboardingPage(
-    val title:       String,
-    val description: String,
-    val iconName:    String
+data class ActivityItem(
+    val id: String,
+    val title: String,
+    val subtitle: String,
+    val date: String,
+    val type: ActivityType
 )
+
+data class Appointment(
+    val id: String,
+    val vehicleName: String,
+    val serviceName: String,
+    val serviceCenter: String,
+    val date: String,
+    val time: String,
+    val status: AppointmentStatus
+)
+
+enum class AppointmentStatus { PENDING, UPCOMING, COMPLETED, CANCELLED }
+enum class ActivityType { SERVICE, APPOINTMENT, DOCUMENT, ALERT }
+enum class ButtonVariant { Primary, Outline, Ghost }
+enum class ChipType { Info, Warning, Success, Error }
