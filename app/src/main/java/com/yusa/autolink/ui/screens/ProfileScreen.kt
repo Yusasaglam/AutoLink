@@ -18,15 +18,16 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.yusa.autolink.data.DemoData
+import com.yusa.autolink.data.AppState
 import com.yusa.autolink.ui.theme.*
 
-// Profil ekranı - kullanıcı bilgisi, destek seçenekleri ve çıkış
-// Randevular ve araçlar artık alt menüdeki kendi sekmelerinde
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(onLogout: () -> Unit) {
-    val user = DemoData.currentUser
+    val userName  = AppState.currentUserName
+    val userPhone = AppState.currentUserPhone
+    val userEmail = AppState.currentUserEmail
+    val initial   = userName.firstOrNull()?.toString() ?: "?"
 
     Scaffold(
         topBar = {
@@ -47,7 +48,6 @@ fun ProfileScreen(onLogout: () -> Unit) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Kullanıcı bilgi kartı - isim, telefon, e-posta
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape    = RoundedCornerShape(16.dp),
@@ -57,7 +57,6 @@ fun ProfileScreen(onLogout: () -> Unit) {
                     modifier          = Modifier.padding(20.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // İsmin baş harfinden profil avatarı
                     Box(
                         modifier         = Modifier
                             .size(64.dp)
@@ -65,7 +64,7 @@ fun ProfileScreen(onLogout: () -> Unit) {
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text       = user.name.first().toString(),
+                            text       = initial,
                             fontSize   = 28.sp,
                             fontWeight = FontWeight.Bold,
                             color      = Color.White
@@ -73,14 +72,17 @@ fun ProfileScreen(onLogout: () -> Unit) {
                     }
                     Spacer(modifier = Modifier.width(16.dp))
                     Column {
-                        Text(user.name,  fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                        Text(user.phone, fontSize = 14.sp, color = Color.White.copy(alpha = 0.85f))
-                        Text(user.email, fontSize = 12.sp, color = Color.White.copy(alpha = 0.70f))
+                        Text(userName,  fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        if (userPhone.isNotBlank()) {
+                            Text(userPhone, fontSize = 14.sp, color = Color.White.copy(alpha = 0.85f))
+                        }
+                        if (userEmail.isNotBlank()) {
+                            Text(userEmail, fontSize = 12.sp, color = Color.White.copy(alpha = 0.70f))
+                        }
                     }
                 }
             }
 
-            // Destek bölümü
             Text("Destek", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
 
             Card(
@@ -99,13 +101,10 @@ fun ProfileScreen(onLogout: () -> Unit) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Çıkış yap butonu - tıklanınca AppNavigation'da LOGIN ekranına yönlendirir
             Button(
                 onClick  = onLogout,
                 modifier = Modifier.fillMaxWidth().height(52.dp),
-                colors   = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFD32F2F)
-                ),
+                colors   = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
                 shape    = RoundedCornerShape(16.dp)
             ) {
                 Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null, tint = Color.White)
@@ -116,7 +115,6 @@ fun ProfileScreen(onLogout: () -> Unit) {
     }
 }
 
-// Profil menü satırı
 @Composable
 private fun ProfileMenuItem(icon: ImageVector, text: String) {
     Row(

@@ -7,6 +7,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.yusa.autolink.data.AppState
+import com.yusa.autolink.data.model.AccountType
 import com.yusa.autolink.ui.screens.*
 
 // Tüm ekran rota isimleri tek yerde - navigasyonu takip etmek kolaylaşır
@@ -14,7 +15,8 @@ object Routes {
     const val SPLASH              = "splash"
     const val LOGIN               = "login"
     const val REGISTER            = "register"
-    const val MAIN                = "main"           // Alt menülü ana ekran
+    const val MAIN                = "main"           // Müşteri ekranı
+    const val BUSINESS_MAIN      = "business_main"  // İşletme paneli
     const val BUSINESS_LIST       = "business_list"
     const val APPOINTMENT         = "appointment"
     const val APPOINTMENT_SUCCESS = "appointment_success"
@@ -27,24 +29,33 @@ fun AppNavigation() {
 
     NavHost(navController = navController, startDestination = Routes.SPLASH) {
 
-        // 1. Splash ekranı - 2 sn sonra Login'e geçer
+        // 1. Splash — oturum varsa direkt panele git, yoksa login'e
         composable(Routes.SPLASH) {
             SplashScreen(
                 onNavigateToOnboarding = {
-                    navController.navigate(Routes.LOGIN) {
-                        popUpTo(Routes.SPLASH) { inclusive = true }
+                    if (AppState.isLoggedIn) {
+                        val dest = if (AppState.currentAccountType == AccountType.BUSINESS)
+                            Routes.BUSINESS_MAIN else Routes.MAIN
+                        navController.navigate(dest) {
+                            popUpTo(Routes.SPLASH) { inclusive = true }
+                        }
+                    } else {
+                        navController.navigate(Routes.LOGIN) {
+                            popUpTo(Routes.SPLASH) { inclusive = true }
+                        }
                     }
                 }
             )
         }
 
-        // 2. Giriş ekranı - demo: her zaman başarılı
+        // 2. Giriş ekranı
         composable(Routes.LOGIN) {
             LoginScreen(
                 onNavigateToHome = {
-                    AppState.isLoggedIn  = true
-                    AppState.selectedTab = 0    // Ana Sayfa sekmesiyle başla
-                    navController.navigate(Routes.MAIN) {
+                    val dest = if (AppState.currentAccountType == AccountType.BUSINESS)
+                        Routes.BUSINESS_MAIN else Routes.MAIN
+                    AppState.selectedTab = 0
+                    navController.navigate(dest) {
                         popUpTo(Routes.LOGIN) { inclusive = true }
                     }
                 },
@@ -54,13 +65,14 @@ fun AppNavigation() {
             )
         }
 
-        // 3. Kayıt ekranı - müşteri veya işletme seçimi yapılır
+        // 3. Kayıt ekranı
         composable(Routes.REGISTER) {
             RegisterScreen(
                 onNavigateToHome = {
-                    AppState.isLoggedIn  = true
+                    val dest = if (AppState.currentAccountType == AccountType.BUSINESS)
+                        Routes.BUSINESS_MAIN else Routes.MAIN
                     AppState.selectedTab = 0
-                    navController.navigate(Routes.MAIN) {
+                    navController.navigate(dest) {
                         popUpTo(Routes.LOGIN) { inclusive = true }
                     }
                 },
@@ -68,16 +80,26 @@ fun AppNavigation() {
             )
         }
 
-        // 4. Ana ekran - alt menü (Home / Randevularım / Araçlarım / Profil) burada
+        // 4. Müşteri ana ekranı
         composable(Routes.MAIN) {
             MainScreen(
                 onNavigateToBusinessList = { serviceType ->
                     navController.navigate("${Routes.BUSINESS_LIST}/$serviceType")
                 },
                 onNavigateToLogin = {
-                    // Çıkış yap: geri dönüş yolu tamamen temizlenir
                     navController.navigate(Routes.LOGIN) {
                         popUpTo(Routes.MAIN) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        // 4b. İşletme paneli
+        composable(Routes.BUSINESS_MAIN) {
+            BusinessMainScreen(
+                onNavigateToLogin = {
+                    navController.navigate(Routes.LOGIN) {
+                        popUpTo(Routes.BUSINESS_MAIN) { inclusive = true }
                     }
                 }
             )

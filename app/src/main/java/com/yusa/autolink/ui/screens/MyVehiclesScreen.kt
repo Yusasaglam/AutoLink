@@ -15,24 +15,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.yusa.autolink.data.DemoData
+import com.yusa.autolink.data.AppState
 import com.yusa.autolink.data.model.Vehicle
 import com.yusa.autolink.ui.theme.*
 
-// Araçlarım ekranı - kayıtlı araçlar, ekleme ve düzenleme formu
+private val FUEL_TYPES = listOf("Benzin", "Dizel", "LPG", "Elektrik", "Hibrit")
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MyVehiclesScreen() {
-    // Araç listesi - başlangıçta demo aracı içerir
-    var vehicles by remember { mutableStateOf(listOf(DemoData.userVehicle)) }
-
-    // Düzenleme için seçilen araç (null ise yeni araç ekleniyor)
+    var vehicles       by remember { mutableStateOf(AppState.userVehicles.toList()) }
     var editingVehicle by remember { mutableStateOf<Vehicle?>(null) }
-
-    // Form göster/gizle
-    var showForm by remember { mutableStateOf(false) }
+    var showForm       by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -42,11 +39,7 @@ fun MyVehiclesScreen() {
                     containerColor = MaterialTheme.colorScheme.background
                 ),
                 actions = {
-                    // Sağ üstteki + butonu
-                    IconButton(onClick = {
-                        editingVehicle = null
-                        showForm       = true
-                    }) {
+                    IconButton(onClick = { editingVehicle = null; showForm = true }) {
                         Icon(Icons.Filled.Add, contentDescription = "Araç Ekle")
                     }
                 }
@@ -62,19 +55,18 @@ fun MyVehiclesScreen() {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Kayıtlı araç kartları
+            if (vehicles.isEmpty() && !showForm) {
+                EmptyVehiclesState(onAdd = { showForm = true })
+            }
+
             vehicles.forEach { vehicle ->
                 VehicleItemCard(
                     vehicle = vehicle,
-                    onEdit  = {
-                        editingVehicle = vehicle
-                        showForm       = true
-                    }
+                    onEdit  = { editingVehicle = vehicle; showForm = true }
                 )
             }
 
-            // Yeni araç ekle butonu (listenin altında)
-            if (!showForm) {
+            if (!showForm && vehicles.isNotEmpty()) {
                 OutlinedButton(
                     onClick  = { editingVehicle = null; showForm = true },
                     modifier = Modifier.fillMaxWidth(),
@@ -86,40 +78,80 @@ fun MyVehiclesScreen() {
                 }
             }
 
-            // Ekleme/düzenleme formu - showForm true olduğunda görünür
             if (showForm) {
                 VehicleForm(
                     initialVehicle = editingVehicle,
-                    onSave         = { brand, model, year, engine, fuelType ->
-                        val updatedVehicle = Vehicle(
-                            id       = editingVehicle?.id ?: ((vehicles.maxOfOrNull { it.id } ?: 0) + 1),
-                            brand    = brand,
-                            model    = model,
-                            year     = year.toIntOrNull() ?: 2020,
-                            plate    = editingVehicle?.plate ?: "",
-                            fuelType = fuelType,
-                            engine   = engine
-                        )
-                        // Düzenleme ise mevcut aracı güncelle, yeni ekleme ise listeye ekle
-                        vehicles = if (editingVehicle != null) {
-                            vehicles.map { if (it.id == editingVehicle!!.id) updatedVehicle else it }
+                    onSave = { brand, model, year, engine, fuelType ->
+                        val yearInt = year.toIntOrNull() ?: 2020
+                        if (editingVehicle != null) {
+                            val updated = editingVehicle!!.copy(
+                                brand    = brand,
+                                model    = model,
+                                year     = yearInt,
+                                fuelType = fuelType,
+                                engine   = engine
+                            )
+                            AppState.updateVehicle(updated)
                         } else {
-                            vehicles + updatedVehicle
+                            AppState.addVehicle(
+                                brand    = brand,
+                                model    = model,
+                                year     = yearInt,
+                                plate    = "",
+                                fuelType = fuelType,
+                                engine   = engine
+                            )
                         }
+                        vehicles       = AppState.userVehicles.toList()
                         showForm       = false
                         editingVehicle = null
                     },
-                    onCancel = {
-                        showForm       = false
-                        editingVehicle = null
-                    }
+                    onCancel = { showForm = false; editingVehicle = null }
                 )
             }
         }
     }
 }
 
-// Araç kartı - araç bilgisi ve düzenle butonu
+@Composable
+private fun EmptyVehiclesState(onAdd: () -> Unit) {
+    Column(
+        modifier            = Modifier.fillMaxWidth().padding(vertical = 48.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            Icons.Filled.DirectionsCar,
+            contentDescription = null,
+            tint     = TextSecondary.copy(alpha = 0.4f),
+            modifier = Modifier.size(72.dp)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text      = "Kayıtlı araç yok",
+            fontSize  = 18.sp,
+            fontWeight = FontWeight.SemiBold,
+            color     = TextPrimary
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text      = "Araçlarınızı ekleyerek randevu alırken\nkolayca seçebilirsiniz.",
+            fontSize  = 14.sp,
+            color     = TextSecondary,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Button(
+            onClick = onAdd,
+            colors  = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
+            shape   = RoundedCornerShape(14.dp)
+        ) {
+            Icon(Icons.Filled.Add, null, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Araç Ekle")
+        }
+    }
+}
+
 @Composable
 private fun VehicleItemCard(vehicle: Vehicle, onEdit: () -> Unit) {
     Card(
@@ -165,19 +197,19 @@ private fun VehicleItemCard(vehicle: Vehicle, onEdit: () -> Unit) {
     }
 }
 
-// Araç ekleme/düzenleme formu - 5 alan: Marka, Model, Yıl, Motor, Yakıt Tipi
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun VehicleForm(
     initialVehicle: Vehicle?,
     onSave:   (brand: String, model: String, year: String, engine: String, fuelType: String) -> Unit,
     onCancel: () -> Unit
 ) {
-    // Düzenleme modundaysa mevcut bilgilerle form başlar
-    var brand    by remember { mutableStateOf(initialVehicle?.brand              ?: "") }
-    var model    by remember { mutableStateOf(initialVehicle?.model              ?: "") }
-    var year     by remember { mutableStateOf(initialVehicle?.year?.toString()   ?: "") }
-    var engine   by remember { mutableStateOf(initialVehicle?.engine             ?: "") }
-    var fuelType by remember { mutableStateOf(initialVehicle?.fuelType           ?: "") }
+    var brand    by remember { mutableStateOf(initialVehicle?.brand    ?: "") }
+    var model    by remember { mutableStateOf(initialVehicle?.model    ?: "") }
+    var year     by remember { mutableStateOf(initialVehicle?.year?.toString() ?: "") }
+    var engine   by remember { mutableStateOf(initialVehicle?.engine   ?: "") }
+    var fuelType by remember { mutableStateOf(initialVehicle?.fuelType ?: FUEL_TYPES[0]) }
+    var expanded by remember { mutableStateOf(false) }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -194,37 +226,62 @@ private fun VehicleForm(
                 fontWeight = FontWeight.Bold
             )
 
-            VehicleFormField("Marka",      brand,    { brand    = it })
-            VehicleFormField("Model",      model,    { model    = it })
-            VehicleFormField("Yıl",        year,     { year     = it }, KeyboardType.Number)
-            VehicleFormField("Motor",      engine,   { engine   = it })
-            VehicleFormField("Yakıt Tipi", fuelType, { fuelType = it })
+            VehicleFormField("Marka",  brand,  { brand  = it })
+            VehicleFormField("Model",  model,  { model  = it })
+            VehicleFormField("Yıl",    year,   { year   = it }, KeyboardType.Number)
+            VehicleFormField("Motor",  engine, { engine = it })
+
+            // Yakıt tipi dropdown
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = !expanded }
+            ) {
+                OutlinedTextField(
+                    value         = fuelType,
+                    onValueChange = {},
+                    readOnly      = true,
+                    label         = { Text("Yakıt Tipi") },
+                    trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    singleLine    = true,
+                    shape         = RoundedCornerShape(12.dp),
+                    modifier      = Modifier.fillMaxWidth().menuAnchor(),
+                    colors        = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor   = PrimaryBlue,
+                        unfocusedBorderColor = CardBorder
+                    )
+                )
+                ExposedDropdownMenu(
+                    expanded         = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    FUEL_TYPES.forEach { type ->
+                        DropdownMenuItem(
+                            text    = { Text(type) },
+                            onClick = { fuelType = type; expanded = false }
+                        )
+                    }
+                }
+            }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                // İptal butonu
                 OutlinedButton(
                     onClick  = onCancel,
                     modifier = Modifier.weight(1f),
                     shape    = RoundedCornerShape(12.dp)
-                ) {
-                    Text("İptal")
-                }
-                // Kaydet butonu - en az marka ve model dolu olmalı
+                ) { Text("İptal") }
+
                 Button(
                     onClick  = { onSave(brand, model, year, engine, fuelType) },
                     modifier = Modifier.weight(1f),
                     enabled  = brand.isNotBlank() && model.isNotBlank(),
                     colors   = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
                     shape    = RoundedCornerShape(12.dp)
-                ) {
-                    Text("Kaydet")
-                }
+                ) { Text("Kaydet") }
             }
         }
     }
 }
 
-// Tekrar kullanılan form alanı
 @Composable
 private fun VehicleFormField(
     label:         String,

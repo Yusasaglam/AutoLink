@@ -18,6 +18,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yusa.autolink.data.model.Business
+import com.yusa.autolink.data.model.BusinessType
 import com.yusa.autolink.data.model.Service
 import com.yusa.autolink.data.model.Vehicle
 import com.yusa.autolink.ui.theme.*
@@ -107,27 +108,46 @@ fun BusinessCard(
         colors    = CardDefaults.cardColors(containerColor = SurfaceWhite),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
+        val isWashing   = business.type == BusinessType.WASHING
+        val typeColor   = if (isWashing) PrimaryBlue else SuccessGreen
+        val typeIcon    = if (isWashing) Icons.Filled.LocalCarWash else Icons.Filled.Build
+        val typeLabel   = if (isWashing) "Araba Yıkama" else "Oto Bakım"
+
         Column(modifier = Modifier.padding(16.dp)) {
 
-            // Satır 1: İşletme adı + yıldız puan
+            // Satır 0: Hizmet tipi rozeti
             Row(
-                modifier              = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment     = Alignment.CenterVertically
+                modifier          = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text       = business.name,
-                    fontSize   = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color      = TextPrimary,
-                    modifier   = Modifier.weight(1f)
-                )
+                Row(
+                    modifier = Modifier
+                        .background(typeColor.copy(alpha = 0.10f), RoundedCornerShape(8.dp))
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(typeIcon, null, tint = typeColor, modifier = Modifier.size(13.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(typeLabel, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = typeColor)
+                }
+                // Puan
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.Star, null, tint = RatingYellow, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(business.rating.toString(), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Satır 1: İşletme adı
+            Text(
+                text       = business.name,
+                fontSize   = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color      = TextPrimary
+            )
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -138,7 +158,8 @@ fun BusinessCard(
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(business.distanceText, fontSize = 12.sp, color = TextSecondary)
                 }
-                Text("₺${business.startingPrice}'den başlar", fontSize = 12.sp, color = TextSecondary)
+                val displayPrice = business.services.minOfOrNull { it.price } ?: business.startingPrice
+                Text("₺$displayPrice'den başlar", fontSize = 12.sp, color = TextSecondary)
             }
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -172,13 +193,15 @@ fun BusinessCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Randevu al butonu
+            // Randevu al butonu — renk hizmet tipine göre
             Button(
                 onClick  = onAppointmentClick,
                 modifier = Modifier.fillMaxWidth(),
-                colors   = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
+                colors   = ButtonDefaults.buttonColors(containerColor = typeColor),
                 shape    = RoundedCornerShape(12.dp)
             ) {
+                Icon(typeIcon, null, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(6.dp))
                 Text("Randevu Al", fontWeight = FontWeight.SemiBold)
             }
         }

@@ -22,17 +22,18 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.yusa.autolink.data.AppState
 import com.yusa.autolink.ui.theme.*
 
-// Giriş ekranı - demo modda her zaman başarılı giriş yapılır
 @Composable
 fun LoginScreen(
     onNavigateToHome: () -> Unit,
     onNavigateToRegister: () -> Unit
 ) {
-    var email          by remember { mutableStateOf("") }
-    var password       by remember { mutableStateOf("") }
+    var email           by remember { mutableStateOf("") }
+    var password        by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+    var errorMessage    by remember { mutableStateOf("") }
 
     Column(
         modifier = Modifier
@@ -43,7 +44,6 @@ fun LoginScreen(
     ) {
         Spacer(modifier = Modifier.weight(0.4f))
 
-        // Logo ve uygulama adı
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.fillMaxWidth()
@@ -57,7 +57,7 @@ fun LoginScreen(
                 Icon(
                     imageVector = Icons.Filled.DirectionsCar,
                     contentDescription = null,
-                    tint     = Color.White,
+                    tint = Color.White,
                     modifier = Modifier.size(44.dp)
                 )
             }
@@ -69,32 +69,32 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(48.dp))
 
-        // E-posta alanı
         Text("E-posta", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
         Spacer(modifier = Modifier.height(8.dp))
         OutlinedTextField(
             value         = email,
-            onValueChange = { email = it },
+            onValueChange = { email = it; errorMessage = "" },
             placeholder   = { Text("ornek@email.com", color = TextSecondary) },
             leadingIcon   = { Icon(Icons.Filled.Email, null, tint = TextSecondary) },
             singleLine    = true,
             shape         = RoundedCornerShape(12.dp),
             modifier      = Modifier.fillMaxWidth(),
+            isError       = errorMessage.isNotEmpty(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor   = PrimaryBlue,
-                unfocusedBorderColor = CardBorder
+                unfocusedBorderColor = CardBorder,
+                errorBorderColor     = Color(0xFFD32F2F)
             )
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Şifre alanı - göster/gizle butonu ile
         Text("Şifre", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
         Spacer(modifier = Modifier.height(8.dp))
         OutlinedTextField(
             value         = password,
-            onValueChange = { password = it },
+            onValueChange = { password = it; errorMessage = "" },
             placeholder   = { Text("••••••••", color = TextSecondary) },
             leadingIcon   = { Icon(Icons.Filled.Lock, null, tint = TextSecondary) },
             trailingIcon  = {
@@ -110,17 +110,34 @@ fun LoginScreen(
             singleLine    = true,
             shape         = RoundedCornerShape(12.dp),
             modifier      = Modifier.fillMaxWidth(),
+            isError       = errorMessage.isNotEmpty(),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor   = PrimaryBlue,
-                unfocusedBorderColor = CardBorder
+                unfocusedBorderColor = CardBorder,
+                errorBorderColor     = Color(0xFFD32F2F)
             )
         )
 
+        if (errorMessage.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text     = errorMessage,
+                color    = Color(0xFFD32F2F),
+                fontSize = 13.sp
+            )
+        }
+
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Giriş Yap butonu - demo: her zaman çalışır, gerçek doğrulama yok
         Button(
-            onClick  = onNavigateToHome,
+            onClick = {
+                when {
+                    email.isBlank()    -> errorMessage = "E-posta adresi boş bırakılamaz."
+                    password.isBlank() -> errorMessage = "Şifre boş bırakılamaz."
+                    !AppState.login(email, password) -> errorMessage = "E-posta veya şifre hatalı."
+                    else -> onNavigateToHome()
+                }
+            },
             modifier = Modifier.fillMaxWidth().height(56.dp),
             colors   = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
             shape    = RoundedCornerShape(16.dp)
@@ -130,7 +147,6 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Kayıt ol linki
         Text(
             text = buildAnnotatedString {
                 withStyle(SpanStyle(color = TextSecondary)) { append("Hesabınız yok mu?  ") }

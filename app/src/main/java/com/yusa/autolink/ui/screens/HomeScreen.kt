@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.LocalCarWash
@@ -17,24 +18,25 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.yusa.autolink.data.DemoData
+import com.yusa.autolink.data.AppState
 import com.yusa.autolink.ui.components.VehicleCard
 import com.yusa.autolink.ui.theme.*
 
-// Ana ekran - sadece 2 büyük seçenek: Araba Yıkama ve Oto Bakım
-// Profil artık alt menüde olduğu için burada ikon yok
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    onNavigateToBusinessList: (String) -> Unit   // "washing" veya "maintenance" geçilir
+    onNavigateToBusinessList: (String) -> Unit,
+    onAddVehicle: () -> Unit = {}
 ) {
+    val firstVehicle = AppState.userVehicles.firstOrNull()
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Column {
                         Text(
-                            text       = "Merhaba, ${DemoData.currentUser.name.split(" ").first()}",
+                            text       = "Merhaba, ${AppState.currentUserName.split(" ").firstOrNull() ?: "Kullanıcı"}",
                             fontSize   = 20.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -59,10 +61,12 @@ fun HomeScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Kayıtlı araç kartı
-            VehicleCard(vehicle = DemoData.userVehicle)
+            if (firstVehicle != null) {
+                VehicleCard(vehicle = firstVehicle)
+            } else {
+                NoVehicleCard(onAddVehicle = onAddVehicle)
+            }
 
-            // Bölüm başlığı
             Text(
                 text       = "Hangi hizmete ihtiyacınız var?",
                 fontSize   = 16.sp,
@@ -70,7 +74,6 @@ fun HomeScreen(
                 color      = TextPrimary
             )
 
-            // Araba Yıkama - büyük tıklanabilir kart
             ServiceTypeCard(
                 title           = "Araba Yıkama",
                 description     = "Hızlı ve detaylı yıkama hizmetleri",
@@ -79,10 +82,9 @@ fun HomeScreen(
                 onClick         = { onNavigateToBusinessList("washing") }
             )
 
-            // Oto Bakım - büyük tıklanabilir kart
             ServiceTypeCard(
                 title           = "Oto Bakım",
-                description     = "Periyodik bakım, lastik değişimi ve daha fazlası",
+                description     = "Yağ değişimi, lastik ve genel bakım",
                 icon            = Icons.Filled.Build,
                 backgroundColor = SuccessGreen,
                 onClick         = { onNavigateToBusinessList("maintenance") }
@@ -91,14 +93,55 @@ fun HomeScreen(
     }
 }
 
-// Ana hizmet kartı - tam genişlik, renkli arka plan
+@Composable
+private fun NoVehicleCard(onAddVehicle: () -> Unit) {
+    Card(
+        modifier  = Modifier.fillMaxWidth().clickable { onAddVehicle() },
+        shape     = RoundedCornerShape(16.dp),
+        colors    = CardDefaults.cardColors(containerColor = SurfaceWhite),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Row(
+            modifier          = Modifier.padding(20.dp).fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                Icons.Filled.DirectionsCar,
+                contentDescription = null,
+                tint     = TextSecondary.copy(alpha = 0.4f),
+                modifier = Modifier.size(48.dp)
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "Araç Eklenmedi",
+                    fontSize   = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color      = TextPrimary
+                )
+                Text(
+                    "Araçlarım sekmesinden araç ekleyebilirsiniz.",
+                    fontSize = 12.sp,
+                    color    = TextSecondary
+                )
+            }
+            Icon(
+                Icons.Filled.Add,
+                contentDescription = null,
+                tint     = PrimaryBlue,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+    }
+}
+
 @Composable
 private fun ServiceTypeCard(
-    title:           String,
-    description:     String,
-    icon:            ImageVector,
+    title: String,
+    description: String,
+    icon: ImageVector,
     backgroundColor: Color,
-    onClick:         () -> Unit
+    onClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -114,24 +157,15 @@ private fun ServiceTypeCard(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text       = title,
-                    fontSize   = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    color      = Color.White
-                )
+                Text(title, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text     = description,
-                    fontSize = 13.sp,
-                    color    = Color.White.copy(alpha = 0.85f)
-                )
+                Text(description, fontSize = 13.sp, color = Color.White.copy(alpha = 0.85f))
             }
             Icon(
                 imageVector        = icon,
                 contentDescription = null,
-                tint     = Color.White.copy(alpha = 0.9f),
-                modifier = Modifier.size(56.dp)
+                tint               = Color.White.copy(alpha = 0.9f),
+                modifier           = Modifier.size(56.dp)
             )
         }
     }

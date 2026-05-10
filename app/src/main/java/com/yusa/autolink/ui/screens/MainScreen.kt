@@ -55,11 +55,14 @@ fun MainScreen(
     ) { paddingValues ->
         Box(modifier = Modifier.padding(paddingValues)) {
             when (selectedTab) {
-                0 -> HomeScreen(onNavigateToBusinessList = onNavigateToBusinessList)
+                0 -> HomeScreen(
+                    onNavigateToBusinessList = onNavigateToBusinessList,
+                    onAddVehicle             = { selectedTab = 2 }
+                )
                 1 -> MyAppointmentsScreen()
                 2 -> MyVehiclesScreen()
                 3 -> ProfileScreen(onLogout = {
-                    AppState.isLoggedIn = false
+                    AppState.logout()
                     onNavigateToLogin()
                 })
             }
