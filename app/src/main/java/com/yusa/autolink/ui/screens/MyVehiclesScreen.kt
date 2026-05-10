@@ -19,6 +19,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yusa.autolink.data.AppState
+import com.yusa.autolink.data.CAR_BRAND_NAMES
+import com.yusa.autolink.data.modelsFor
 import com.yusa.autolink.data.model.Vehicle
 import com.yusa.autolink.ui.theme.*
 
@@ -204,12 +206,17 @@ private fun VehicleForm(
     onSave:   (brand: String, model: String, year: String, engine: String, fuelType: String) -> Unit,
     onCancel: () -> Unit
 ) {
-    var brand    by remember { mutableStateOf(initialVehicle?.brand    ?: "") }
-    var model    by remember { mutableStateOf(initialVehicle?.model    ?: "") }
-    var year     by remember { mutableStateOf(initialVehicle?.year?.toString() ?: "") }
-    var engine   by remember { mutableStateOf(initialVehicle?.engine   ?: "") }
-    var fuelType by remember { mutableStateOf(initialVehicle?.fuelType ?: FUEL_TYPES[0]) }
-    var expanded by remember { mutableStateOf(false) }
+    var brand        by remember { mutableStateOf(initialVehicle?.brand    ?: "") }
+    var model        by remember { mutableStateOf(initialVehicle?.model    ?: "") }
+    var year         by remember { mutableStateOf(initialVehicle?.year?.toString() ?: "") }
+    var engine       by remember { mutableStateOf(initialVehicle?.engine   ?: "") }
+    var fuelType     by remember { mutableStateOf(initialVehicle?.fuelType ?: FUEL_TYPES[0]) }
+
+    var brandExpanded by remember { mutableStateOf(false) }
+    var modelExpanded by remember { mutableStateOf(false) }
+    var fuelExpanded  by remember { mutableStateOf(false) }
+
+    val availableModels = modelsFor(brand)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -226,22 +233,100 @@ private fun VehicleForm(
                 fontWeight = FontWeight.Bold
             )
 
-            VehicleFormField("Marka",  brand,  { brand  = it })
-            VehicleFormField("Model",  model,  { model  = it })
-            VehicleFormField("Yıl",    year,   { year   = it }, KeyboardType.Number)
-            VehicleFormField("Motor",  engine, { engine = it })
+            // Marka dropdown
+            ExposedDropdownMenuBox(
+                expanded         = brandExpanded,
+                onExpandedChange = { brandExpanded = !brandExpanded }
+            ) {
+                OutlinedTextField(
+                    value         = brand,
+                    onValueChange = {
+                        brand = it
+                        model = ""
+                        brandExpanded = true
+                    },
+                    label        = { Text("Marka") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = brandExpanded) },
+                    singleLine   = true,
+                    shape        = RoundedCornerShape(12.dp),
+                    modifier     = Modifier.fillMaxWidth().menuAnchor(),
+                    colors       = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor   = PrimaryBlue,
+                        unfocusedBorderColor = CardBorder
+                    )
+                )
+                val filteredBrands = CAR_BRAND_NAMES.filter {
+                    brand.isBlank() || it.contains(brand, ignoreCase = true)
+                }
+                if (filteredBrands.isNotEmpty()) {
+                    ExposedDropdownMenu(
+                        expanded         = brandExpanded,
+                        onDismissRequest = { brandExpanded = false }
+                    ) {
+                        filteredBrands.forEach { b ->
+                            DropdownMenuItem(
+                                text    = { Text(b) },
+                                onClick = {
+                                    brand         = b
+                                    model         = ""
+                                    brandExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Model dropdown — markaya göre filtrelenir
+            ExposedDropdownMenuBox(
+                expanded         = modelExpanded,
+                onExpandedChange = { if (availableModels.isNotEmpty() || model.isNotBlank()) modelExpanded = !modelExpanded }
+            ) {
+                OutlinedTextField(
+                    value         = model,
+                    onValueChange = { model = it; modelExpanded = true },
+                    label        = { Text("Model") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = modelExpanded) },
+                    singleLine   = true,
+                    shape        = RoundedCornerShape(12.dp),
+                    modifier     = Modifier.fillMaxWidth().menuAnchor(),
+                    colors       = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor   = PrimaryBlue,
+                        unfocusedBorderColor = CardBorder
+                    )
+                )
+                val filteredModels = availableModels.filter {
+                    model.isBlank() || it.contains(model, ignoreCase = true)
+                }
+                if (filteredModels.isNotEmpty()) {
+                    ExposedDropdownMenu(
+                        expanded         = modelExpanded,
+                        onDismissRequest = { modelExpanded = false }
+                    ) {
+                        filteredModels.forEach { m ->
+                            DropdownMenuItem(
+                                text    = { Text(m) },
+                                onClick = { model = m; modelExpanded = false }
+                            )
+                        }
+                    }
+                }
+            }
+
+            VehicleFormField("Yıl",   year,   { year   = it }, KeyboardType.Number)
+            VehicleFormField("Motor", engine, { engine = it })
 
             // Yakıt tipi dropdown
             ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = { expanded = !expanded }
+                expanded         = fuelExpanded,
+                onExpandedChange = { fuelExpanded = !fuelExpanded }
             ) {
                 OutlinedTextField(
                     value         = fuelType,
                     onValueChange = {},
                     readOnly      = true,
                     label         = { Text("Yakıt Tipi") },
-                    trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = fuelExpanded) },
                     singleLine    = true,
                     shape         = RoundedCornerShape(12.dp),
                     modifier      = Modifier.fillMaxWidth().menuAnchor(),
@@ -251,13 +336,13 @@ private fun VehicleForm(
                     )
                 )
                 ExposedDropdownMenu(
-                    expanded         = expanded,
-                    onDismissRequest = { expanded = false }
+                    expanded         = fuelExpanded,
+                    onDismissRequest = { fuelExpanded = false }
                 ) {
                     FUEL_TYPES.forEach { type ->
                         DropdownMenuItem(
                             text    = { Text(type) },
-                            onClick = { fuelType = type; expanded = false }
+                            onClick = { fuelType = type; fuelExpanded = false }
                         )
                     }
                 }

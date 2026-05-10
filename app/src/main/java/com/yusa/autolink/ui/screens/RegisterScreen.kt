@@ -25,14 +25,16 @@ import com.yusa.autolink.data.AppState
 import com.yusa.autolink.data.model.AccountType
 import com.yusa.autolink.ui.theme.*
 
+// Kayıt ekranı — hem müşteri hem işletme kaydı bu ekrandan yapılır.
+// Hesap tipine göre form alanları dinamik olarak değişir.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(
-    onNavigateToHome: () -> Unit,
-    onNavigateBack: () -> Unit
+    onNavigateToHome: () -> Unit,   // Kayıt başarılıysa ana ekrana geç
+    onNavigateBack: () -> Unit      // Geri tuşu için
 ) {
     var selectedType        by remember { mutableStateOf(AccountType.CUSTOMER) }
-    var selectedServiceType by remember { mutableStateOf("washing") }
+    var selectedServiceType by remember { mutableStateOf("washing") }  // "washing" veya "maintenance"
     var fullName            by remember { mutableStateOf("") }
     var email               by remember { mutableStateOf("") }
     var phone               by remember { mutableStateOf("") }
@@ -40,6 +42,9 @@ fun RegisterScreen(
     var address             by remember { mutableStateOf("") }
     var password            by remember { mutableStateOf("") }
     var errorMessage        by remember { mutableStateOf("") }
+
+    // E-posta ve şifre alanlarından Türkçe karakterleri siler
+    fun stripTurkish(s: String) = s.filter { it !in "şŞğĞüÜöÖçÇıİ" }
 
     Scaffold(
         topBar = {
@@ -62,6 +67,7 @@ fun RegisterScreen(
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Hesap tipi seçimi — müşteri veya işletme
             Text("Hesap Türünüzü Seçin", fontSize = 16.sp, fontWeight = FontWeight.Bold)
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -85,14 +91,17 @@ fun RegisterScreen(
 
             HorizontalDivider()
 
+            // Temel bilgiler — her iki hesap tipinde de gösterilir
             RegisterField("Ad Soyad", fullName, { fullName = it }, Icons.Filled.Person)
-            RegisterField("E-posta",  email,    { email = it; errorMessage = "" }, Icons.Filled.Email,  KeyboardType.Email)
+            RegisterField("E-posta",  email,    { email = stripTurkish(it); errorMessage = "" }, Icons.Filled.Email,  KeyboardType.Email)
             RegisterField("Telefon",  phone,    { phone = it }, Icons.Filled.Phone,  KeyboardType.Phone)
 
+            // İşletme hesabına özgü alanlar
             if (selectedType == AccountType.BUSINESS) {
                 RegisterField("İşletme Adı", businessName, { businessName = it }, Icons.Filled.Store)
                 RegisterField("Adres",        address,      { address = it },       Icons.Filled.LocationOn)
 
+                // İşletme türü: yıkama mı bakım mı?
                 Text("Hizmet Türünüzü Seçin", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     ServiceTypeCard(
@@ -112,9 +121,10 @@ fun RegisterScreen(
                 }
             }
 
+            // Şifre alanı
             OutlinedTextField(
                 value         = password,
-                onValueChange = { password = it },
+                onValueChange = { password = stripTurkish(it) },
                 label         = { Text("Şifre") },
                 leadingIcon   = { Icon(Icons.Filled.Lock, null, tint = TextSecondary) },
                 visualTransformation = PasswordVisualTransformation(),
@@ -127,12 +137,14 @@ fun RegisterScreen(
                 )
             )
 
+            // Hata mesajı
             if (errorMessage.isNotEmpty()) {
                 Text(text = errorMessage, color = Color(0xFFD32F2F), fontSize = 13.sp)
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            // Kayıt ol butonu — doğrulama geçerse AppState.register() çağrılır
             Button(
                 onClick = {
                     when {
@@ -171,6 +183,7 @@ fun RegisterScreen(
     }
 }
 
+// Hesap tipi seçim kartı (Müşteri / İşletme)
 @Composable
 private fun AccountTypeCard(
     title: String,
@@ -201,6 +214,7 @@ private fun AccountTypeCard(
     }
 }
 
+// İşletme tipi seçim kartı (Araba Yıkama / Oto Bakım)
 @Composable
 private fun ServiceTypeCard(
     title: String,
@@ -229,6 +243,7 @@ private fun ServiceTypeCard(
     }
 }
 
+// Tekrar kullanılabilir form alanı bileşeni
 @Composable
 private fun RegisterField(
     label: String,

@@ -39,7 +39,9 @@
       "Bash(\"/c/Users/YUŞA/AppData/Local/Android/Sdk/emulator/emulator.exe\" -avd Pixel_7 -no-snapshot-load -no-audio)",
       "Bash(ANDROID_SDK_ROOT=\"/c/Users/YUŞA/AppData/Local/Android/Sdk\" \"/c/Users/YUŞA/AppData/Local/Android/Sdk/emulator/emulator.exe\" -avd Pixel_7_2 -no-snapshot-load -no-audio -no-window)",
       "Bash(echo \"Emulator başlatıldı, PID: $!\")",
-      "Bash(/c/Users/YUŞA/AppData/Local/Android/Sdk/platform-tools/adb.exe shell *)"
+      "Bash(/c/Users/YUŞA/AppData/Local/Android/Sdk/platform-tools/adb.exe shell *)",
+      "Bash(./gradlew compileDebugKotlin)",
+      "Bash(python *)"
     ]
   }
 }

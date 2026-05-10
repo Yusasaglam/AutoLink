@@ -11,6 +11,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -247,6 +248,33 @@ private fun BusinessAppointmentCard(
                 Text("${appointment.date} · ${appointment.time}", fontSize = 12.sp, color = TextSecondary)
             }
 
+            if (appointment.hasValet) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.LocalShipping, null, tint = accentColor, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text       = "Vale: ${appointment.valetAddress}",
+                        fontSize   = 12.sp,
+                        color      = accentColor,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+            if (appointment.isOnSite) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.Home, null, tint = accentColor, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text       = "Yerinde: ${appointment.onSiteAddress}",
+                        fontSize   = 12.sp,
+                        color      = accentColor,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+
             HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp))
 
             Row(
@@ -470,6 +498,8 @@ private fun PricingTab(
 
 @Composable
 private fun BusinessProfileTab(business: Business?, accentColor: Color) {
+    var valetEnabled by remember { mutableStateOf(business?.hasValet == true) }
+
     Column(
         modifier            = Modifier
             .fillMaxSize()
@@ -522,6 +552,96 @@ private fun BusinessProfileTab(business: Business?, accentColor: Color) {
                     "Durum",
                     if (business?.isVerified == true) "Onaylı İşletme" else "Onay Bekliyor"
                 )
+            }
+        }
+
+        // Vale hizmeti ayarı — işletme sahibi buradan açıp kapatır
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape    = RoundedCornerShape(16.dp),
+            colors   = CardDefaults.cardColors(containerColor = SurfaceWhite)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text("Hizmet Ayarları", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier              = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment     = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Filled.LocalShipping,
+                                contentDescription = null,
+                                tint     = if (valetEnabled) accentColor else TextSecondary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                "Vale Hizmeti",
+                                fontSize   = 14.sp,
+                                fontWeight = FontWeight.Medium,
+                                color      = TextPrimary
+                            )
+                        }
+                        Text(
+                            if (valetEnabled) "Aktif — müşteriler vale talep edebilir"
+                            else              "Pasif — müşterilere vale seçeneği çıkmaz",
+                            fontSize = 12.sp,
+                            color    = TextSecondary
+                        )
+                    }
+                    Switch(
+                        checked         = valetEnabled,
+                        onCheckedChange = {
+                            valetEnabled = it
+                            AppState.setBusinessValet(it)
+                        },
+                        colors = SwitchDefaults.colors(checkedTrackColor = accentColor)
+                    )
+                }
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = CardBorder)
+
+                var onSiteEnabled by remember { mutableStateOf(business?.onSiteService == true) }
+                Row(
+                    modifier              = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment     = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Filled.Home,
+                                contentDescription = null,
+                                tint     = if (onSiteEnabled) accentColor else TextSecondary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                "Yerinde Hizmet",
+                                fontSize   = 14.sp,
+                                fontWeight = FontWeight.Medium,
+                                color      = TextPrimary
+                            )
+                        }
+                        Text(
+                            if (onSiteEnabled) "Aktif — ekip müşterinin adresine gider"
+                            else              "Pasif — yerinde hizmet seçeneği çıkmaz",
+                            fontSize = 12.sp,
+                            color    = TextSecondary
+                        )
+                    }
+                    Switch(
+                        checked         = onSiteEnabled,
+                        onCheckedChange = {
+                            onSiteEnabled = it
+                            AppState.setBusinessOnSite(it)
+                        },
+                        colors = SwitchDefaults.colors(checkedTrackColor = accentColor)
+                    )
+                }
             }
         }
     }

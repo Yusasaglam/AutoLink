@@ -7,8 +7,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarOutline
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -24,7 +26,9 @@ import com.yusa.autolink.ui.theme.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MyAppointmentsScreen() {
-    val appointments = AppState.userAppointments
+    // refreshKey değişince liste yeniden çizilir
+    var refreshKey by remember { mutableIntStateOf(0) }
+    val appointments = remember(refreshKey) { AppState.userAppointments.toList() }
 
     Scaffold(
         topBar = {
@@ -45,15 +49,25 @@ fun MyAppointmentsScreen() {
             )
         } else {
             LazyColumn(
-                modifier       = Modifier
+                modifier            = Modifier
                     .fillMaxSize()
                     .background(BackgroundLight)
                     .padding(paddingValues),
-                contentPadding = PaddingValues(16.dp),
+                contentPadding      = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(appointments) { appointment ->
-                    AppointmentCard(appointment = appointment)
+                items(appointments, key = { it.id }) { appointment ->
+                    AppointmentCard(
+                        appointment = appointment,
+                        onCancel    = {
+                            AppState.updateAppointmentStatus(appointment.id, AppointmentStatus.CANCELLED)
+                            refreshKey++
+                        },
+                        onRate      = { rating ->
+                            AppState.rateAppointment(appointment.id, rating)
+                            refreshKey++
+                        }
+                    )
                 }
             }
         }
@@ -93,7 +107,11 @@ private fun EmptyAppointmentsState(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun AppointmentCard(appointment: Appointment) {
+private fun AppointmentCard(
+    appointment: Appointment,
+    onCancel:    () -> Unit,
+    onRate:      (Int) -> Unit
+) {
     Card(
         modifier  = Modifier.fillMaxWidth(),
         shape     = RoundedCornerShape(16.dp),
@@ -102,6 +120,7 @@ private fun AppointmentCard(appointment: Appointment) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
 
+            // Üst satır: işletme adı + durum badge
             Row(
                 modifier              = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -127,8 +146,29 @@ private fun AppointmentCard(appointment: Appointment) {
                 color    = TextSecondary
             )
 
+            // Vale veya yerinde hizmet bilgisi varsa göster
+            if (appointment.hasValet && appointment.valetAddress.isNotBlank()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    "Vale: ${appointment.valetAddress}",
+                    fontSize   = 12.sp,
+                    color      = PrimaryBlue,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+            if (appointment.isOnSite && appointment.onSiteAddress.isNotBlank()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    "Yerinde Hizmet: ${appointment.onSiteAddress}",
+                    fontSize   = 12.sp,
+                    color      = PrimaryBlue,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
             HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp))
 
+            // Alt satır: fiyat + iptal butonu
             Row(
                 modifier              = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -140,6 +180,79 @@ private fun AppointmentCard(appointment: Appointment) {
                     fontSize   = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color      = SuccessGreen
+                )
+            }
+
+            // Beklemedeyse iptal butonu göster
+            if (appointment.status == AppointmentStatus.PENDING) {
+                Spacer(modifier = Modifier.height(10.dp))
+                OutlinedButton(
+                    onClick        = onCancel,
+                    modifier       = Modifier.fillMaxWidth(),
+                    shape          = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Color(0xFFD32F2F)
+                    ),
+                    border = ButtonDefaults.outlinedButtonBorder(enabled = true).copy(width = 1.dp)
+                ) {
+                    Text("Randevuyu İptal Et", fontSize = 13.sp)
+                }
+            }
+
+            // Tamamlanmışsa yıldız değerlendirme göster
+            if (appointment.status == AppointmentStatus.COMPLETED) {
+                Spacer(modifier = Modifier.height(10.dp))
+                HorizontalDivider(color = CardBorder)
+                Spacer(modifier = Modifier.height(10.dp))
+
+                if (appointment.userRating == 0) {
+                    // Henüz puan verilmemiş — yıldız seçimi
+                    Text(
+                        "Hizmeti değerlendirin",
+                        fontSize   = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        color      = TextPrimary
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    StarRow(
+                        currentRating = 0,
+                        onRate        = onRate
+                    )
+                } else {
+                    // Puan verilmiş — göster
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            "Değerlendirmeniz: ",
+                            fontSize = 13.sp,
+                            color    = TextSecondary
+                        )
+                        StarRow(
+                            currentRating = appointment.userRating,
+                            onRate        = null
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Yıldız satırı — onRate null ise sadece gösterim modunda çalışır
+@Composable
+private fun StarRow(currentRating: Int, onRate: ((Int) -> Unit)?) {
+    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        for (i in 1..5) {
+            val filled = i <= currentRating
+            IconButton(
+                onClick  = { onRate?.invoke(i) },
+                enabled  = onRate != null,
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(
+                    imageVector = if (filled) Icons.Filled.Star else Icons.Filled.StarOutline,
+                    contentDescription = "$i yıldız",
+                    tint     = if (filled) Color(0xFFFFC107) else TextSecondary.copy(alpha = 0.4f),
+                    modifier = Modifier.size(24.dp)
                 )
             }
         }

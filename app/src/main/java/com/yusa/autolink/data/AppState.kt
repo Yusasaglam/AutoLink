@@ -11,23 +11,30 @@ import com.yusa.autolink.data.model.BusinessService
 import com.yusa.autolink.data.model.BusinessType
 import com.yusa.autolink.data.model.Vehicle
 
+// AppState — uygulamanın merkezi veri yöneticisi.
+// Tüm kullanıcılar, araçlar, randevular ve işletmeler burada tutulur.
+// "object" anahtar kelimesi: uygulama boyunca tek bir örnek vardır (Singleton).
 object AppState {
+
+    // ── Aktif oturum bilgileri ───────────────────────────────────────────────
     var isLoggedIn: Boolean = false
-    var selectedTab: Int = 0
+    var selectedTab: Int = 0           // Alt menüde hangi sekme açık?
 
     var currentUserName: String = ""
     var currentUserEmail: String = ""
     var currentUserPhone: String = ""
     var currentAccountType: AccountType = AccountType.CUSTOMER
-    var currentBusinessId: Int = -1
+    var currentBusinessId: Int = -1    // -1 = müşteri hesabı (işletme yok)
 
+    // Son alınan randevunun bilgileri — başarı ekranında göstermek için saklanır
     var lastBusinessName: String = ""
     var lastServiceName: String = ""
     var lastDate: String = ""
     var lastTime: String = ""
     var lastPrice: Int = 0
 
-    // Her kullanıcının kendi araç ve randevu listesi var
+    // ── Kayıtlı kullanıcı modeli ─────────────────────────────────────────────
+    // Her kullanıcının kendi araç ve randevu listeleri vardır.
     data class RegisteredUser(
         val name: String = "",
         val email: String = "",
@@ -39,21 +46,29 @@ object AppState {
         val appointments: MutableList<Appointment> = mutableListOf()
     )
 
+    // Tüm kayıtlı kullanıcıların listesi
     val registeredUsers = mutableListOf<RegisteredUser>()
+
+    // Kullanıcıların oluşturduğu işletmeler (id >= 100)
     val userCreatedBusinesses = mutableListOf<Business>()
 
-    // Aktif kullanıcının listelerine doğrudan referans — login/register'da güncellenir
+    // Aktif kullanıcının araç ve randevu listelerine kısayol referanslar.
+    // Login/register sırasında ilgili kullanıcının listesine yönlendirilir.
     var userVehicles: MutableList<Vehicle> = mutableListOf()
     var userAppointments: MutableList<Appointment> = mutableListOf()
 
-    // Tüm kullanıcıların randevuları — işletme paneli için
+    // Tüm kullanıcıların randevularının birleşik listesi — işletme paneli bu listeyi okur
     val allAppointments: MutableList<Appointment> = mutableListOf()
 
+    // allAppointments listesini registeredUsers'daki tüm randevulardan yeniden oluşturur.
+    // Durum değişikliklerinden sonra çağrılır.
     fun rebuildAllAppointments() {
         allAppointments.clear()
         registeredUsers.forEach { allAppointments.addAll(it.appointments) }
     }
 
+    // Randevu durumunu günceller (onayla, reddet, tamamla).
+    // Tüm kullanıcılar taranır çünkü hangi kullanıcıya ait olduğu bilinmez.
     fun updateAppointmentStatus(appointmentId: Int, newStatus: AppointmentStatus) {
         registeredUsers.forEach { user ->
             val idx = user.appointments.indexOfFirst { it.id == appointmentId }
@@ -63,6 +78,43 @@ object AppState {
         save()
     }
 
+    // Aktif kullanıcının bir randevusuna 1–5 arası puan verir.
+    // Eğer işletme kullanıcı tarafından oluşturulmuşsa işletmenin ortalama puanı güncellenir.
+    fun rateAppointment(appointmentId: Int, rating: Int) {
+        val idx = userAppointments.indexOfFirst { it.id == appointmentId }
+        if (idx >= 0) userAppointments[idx] = userAppointments[idx].copy(userRating = rating)
+        val businessName = userAppointments.getOrNull(idx)?.businessName ?: ""
+        val bizIdx = userCreatedBusinesses.indexOfFirst { it.name == businessName }
+        if (bizIdx >= 0) {
+            // Tüm kullanıcıların bu işletmeye verdiği puanların ortalamasını hesapla
+            val ratings = registeredUsers
+                .flatMap { it.appointments }
+                .filter { it.businessName == businessName && it.userRating > 0 }
+                .map { it.userRating }
+            if (ratings.isNotEmpty()) {
+                val avg = ratings.average().toFloat()
+                userCreatedBusinesses[bizIdx] = userCreatedBusinesses[bizIdx].copy(rating = avg)
+            }
+        }
+        rebuildAllAppointments()
+        save()
+    }
+
+    // İşletme sahibinin vale hizmetini açıp kapatması
+    fun setBusinessValet(enabled: Boolean) {
+        val idx = userCreatedBusinesses.indexOfFirst { it.id == currentBusinessId }
+        if (idx >= 0) userCreatedBusinesses[idx] = userCreatedBusinesses[idx].copy(hasValet = enabled)
+        save()
+    }
+
+    // İşletme sahibinin yerinde hizmet seçeneğini açıp kapatması
+    fun setBusinessOnSite(enabled: Boolean) {
+        val idx = userCreatedBusinesses.indexOfFirst { it.id == currentBusinessId }
+        if (idx >= 0) userCreatedBusinesses[idx] = userCreatedBusinesses[idx].copy(onSiteService = enabled)
+        save()
+    }
+
+    // İşletmeye yeni hizmet ekler ve başlangıç fiyatını günceller
     fun addBusinessService(name: String, price: Int) {
         val idx = userCreatedBusinesses.indexOfFirst { it.id == currentBusinessId }
         if (idx < 0) return
@@ -70,11 +122,13 @@ object AppState {
         val services = (biz.services ?: mutableListOf()).toMutableList()
         val nextId = (services.maxOfOrNull { it.id } ?: 0) + 1
         services.add(BusinessService(id = nextId, name = name, price = price))
+        // Başlangıç fiyatı her zaman en ucuz hizmete eşittir
         val newStartingPrice = services.minOf { it.price }
         userCreatedBusinesses[idx] = biz.copy(startingPrice = newStartingPrice, services = services)
         save()
     }
 
+    // İşletmeden mevcut bir hizmeti siler
     fun removeBusinessService(serviceId: Int) {
         val idx = userCreatedBusinesses.indexOfFirst { it.id == currentBusinessId }
         if (idx < 0) return
@@ -86,11 +140,14 @@ object AppState {
         save()
     }
 
-    private var nextBusinessId = 100
+    // ── ID sayaçları (her yeni kayıt için 1 artar) ───────────────────────────
+    private var nextBusinessId = 100      // Demo işletmeler 1–99 arası, kullanıcı işletmeleri 100+
     private var nextAppointmentId = 100
     private var nextVehicleId = 10
 
+    // ── İlk açılışta çalışan başlangıç kodu ─────────────────────────────────
     init {
+        // Demo kullanıcı: uygulamayı test etmek için hazır hesap
         val demoUser = RegisteredUser(
             name        = "Demo Kullanıcı",
             email       = "demo@otokuven.com",
@@ -106,15 +163,18 @@ object AppState {
         rebuildAllAppointments()
     }
 
+    // ── Kalıcı veri (SharedPreferences) ─────────────────────────────────────
     private var appContext: Context? = null
-    private val gson = Gson()
-    private val PREFS = "al_prefs"
+    private val gson = Gson()          // JSON dönüşümü için Gson kütüphanesi
+    private val PREFS = "al_prefs"    // SharedPreferences dosya adı
 
+    // Uygulamanın başında (AutoLinkApp.onCreate) çağrılır.
+    // Kayıtlı kullanıcıları ve aktif oturumu cihazdan okur.
     fun load(context: Context) {
         appContext = context
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
-        // Restore registered users (if saved)
+        // Kayıtlı kullanıcıları JSON'dan geri yükle
         val usersJson = prefs.getString("users", null)
         if (!usersJson.isNullOrEmpty()) {
             try {
@@ -125,7 +185,7 @@ object AppState {
             } catch (_: Exception) {}
         }
 
-        // Restore user-created businesses (id >= 100) — demo businesses already seeded in init
+        // Kullanıcıların oluşturduğu işletmeleri geri yükle (id >= 100)
         val bizJson = prefs.getString("biz_extra", null)
         if (!bizJson.isNullOrEmpty()) {
             try {
@@ -140,7 +200,7 @@ object AppState {
             } catch (_: Exception) {}
         }
 
-        // Deduplicate any IDs that were already duplicated by old app versions
+        // Eski app sürümlerinde oluşmuş olabilecek yinelenen ID'leri temizle
         val seenAppt = mutableSetOf<Int>()
         val seenVeh  = mutableSetOf<Int>()
         registeredUsers.forEach { user ->
@@ -150,7 +210,7 @@ object AppState {
 
         rebuildAllAppointments()
 
-        // Recalculate ID counters from loaded data to prevent duplicate IDs after restart
+        // ID sayaçlarını yüklenen veriye göre sıfırla — yeniden başlatmada çakışma önlenir
         val maxBizId  = userCreatedBusinesses.maxOfOrNull { it.id } ?: 99
         val maxApptId = registeredUsers.flatMap { it.appointments }.maxOfOrNull { it.id } ?: 99
         val maxVehId  = registeredUsers.flatMap { it.vehicles }.maxOfOrNull { it.id } ?: 9
@@ -158,7 +218,7 @@ object AppState {
         if (maxApptId >= nextAppointmentId)  nextAppointmentId  = maxApptId + 1
         if (maxVehId  >= nextVehicleId)      nextVehicleId      = maxVehId  + 1
 
-        // Restore session
+        // Önceki oturum varsa otomatik giriş yap
         val savedEmail = prefs.getString("session_email", "") ?: ""
         if (savedEmail.isNotEmpty()) {
             val user = registeredUsers.find { it.email.equals(savedEmail, ignoreCase = true) }
@@ -175,15 +235,19 @@ object AppState {
         }
     }
 
+    // Mevcut durumu SharedPreferences'a JSON olarak yazar.
+    // Veri değiştiren her fonksiyonun sonunda çağrılır.
     fun save() {
         val prefs = appContext?.getSharedPreferences(PREFS, Context.MODE_PRIVATE) ?: return
         prefs.edit()
-            .putString("users",        gson.toJson(registeredUsers.toList()))
-            .putString("biz_extra",    gson.toJson(userCreatedBusinesses.filter { it.id >= 100 }))
+            .putString("users",         gson.toJson(registeredUsers.toList()))
+            .putString("biz_extra",     gson.toJson(userCreatedBusinesses.filter { it.id >= 100 }))
             .putString("session_email", if (isLoggedIn) currentUserEmail else "")
             .apply()
     }
 
+    // Yeni kullanıcı kaydeder. E-posta zaten varsa false döner.
+    // İşletme hesabıysa aynı anda bir Business nesnesi de oluşturulur.
     fun register(
         name: String,
         email: String,
@@ -242,6 +306,7 @@ object AppState {
         return true
     }
 
+    // E-posta ve şifre ile giriş yapar. Hatalı bilgide false döner.
     fun login(email: String, password: String): Boolean {
         val user = registeredUsers.find {
             it.email.equals(email.trim(), ignoreCase = true) && it.password == password
@@ -261,8 +326,8 @@ object AppState {
         return true
     }
 
+    // Oturumu kapatır. Kullanıcı verisine dokunulmaz, yalnızca aktif referanslar sıfırlanır.
     fun logout() {
-        // Aktif referansları boş yeni listelere yönlendir (kullanıcı verisine dokunulmaz)
         userVehicles     = mutableListOf()
         userAppointments = mutableListOf()
 
@@ -276,6 +341,7 @@ object AppState {
         save()
     }
 
+    // Aktif kullanıcıya yeni araç ekler ve kaydeder
     fun addVehicle(
         brand: String,
         model: String,
@@ -298,29 +364,39 @@ object AppState {
         return vehicle
     }
 
+    // Mevcut aracın bilgilerini günceller (id üzerinden bulunur)
     fun updateVehicle(vehicle: Vehicle) {
         val index = userVehicles.indexOfFirst { it.id == vehicle.id }
         if (index >= 0) { userVehicles[index] = vehicle; save() }
     }
 
+    // Yeni randevu oluşturur ve hem kullanıcının listesine hem allAppointments'a ekler
     fun addAppointment(
         businessName: String,
         serviceName: String,
         date: String,
         time: String,
         price: Int,
-        vehicleName: String
+        vehicleName: String,
+        hasValet: Boolean = false,
+        valetAddress: String = "",
+        isOnSite: Boolean = false,
+        onSiteAddress: String = ""
     ) {
         userAppointments.add(
             Appointment(
-                id           = nextAppointmentId++,
-                businessName = businessName,
-                serviceName  = serviceName,
-                date         = date,
-                time         = time,
-                totalPrice   = price,
-                vehicleName  = vehicleName,
-                status       = AppointmentStatus.PENDING
+                id            = nextAppointmentId++,
+                businessName  = businessName,
+                serviceName   = serviceName,
+                date          = date,
+                time          = time,
+                totalPrice    = price,
+                vehicleName   = vehicleName,
+                status        = AppointmentStatus.PENDING,
+                hasValet      = hasValet,
+                valetAddress  = valetAddress,
+                isOnSite      = isOnSite,
+                onSiteAddress = onSiteAddress
             )
         )
         val appt = userAppointments.last()

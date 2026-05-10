@@ -21,12 +21,14 @@ import androidx.compose.ui.unit.sp
 import com.yusa.autolink.data.AppState
 import com.yusa.autolink.ui.theme.*
 
+// Profil ekranı — aktif kullanıcının bilgilerini ve destek seçeneklerini gösterir.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(onLogout: () -> Unit) {
     val userName  = AppState.currentUserName
     val userPhone = AppState.currentUserPhone
     val userEmail = AppState.currentUserEmail
+    // Profil resmi yerine ismin baş harfi gösterilir
     val initial   = userName.firstOrNull()?.toString() ?: "?"
 
     Scaffold(
@@ -48,6 +50,7 @@ fun ProfileScreen(onLogout: () -> Unit) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Kullanıcı bilgi kartı — mavi arka plan, baş harf avatarı
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape    = RoundedCornerShape(16.dp),
@@ -57,6 +60,7 @@ fun ProfileScreen(onLogout: () -> Unit) {
                     modifier          = Modifier.padding(20.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // Daire içinde baş harf
                     Box(
                         modifier         = Modifier
                             .size(64.dp)
@@ -85,6 +89,7 @@ fun ProfileScreen(onLogout: () -> Unit) {
 
             Text("Destek", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
 
+            // Destek menüsü
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape    = RoundedCornerShape(16.dp),
@@ -101,6 +106,7 @@ fun ProfileScreen(onLogout: () -> Unit) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            // Çıkış yap butonu — AppState.logout() çağrılır, giriş ekranına yönlendirilir
             Button(
                 onClick  = onLogout,
                 modifier = Modifier.fillMaxWidth().height(52.dp),
@@ -115,6 +121,7 @@ fun ProfileScreen(onLogout: () -> Unit) {
     }
 }
 
+// Menü satırı — ikon, metin ve sağ ok işareti
 @Composable
 private fun ProfileMenuItem(icon: ImageVector, text: String) {
     Row(

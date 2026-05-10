@@ -25,15 +25,20 @@ import androidx.compose.ui.unit.sp
 import com.yusa.autolink.data.AppState
 import com.yusa.autolink.ui.theme.*
 
+// Giriş ekranı — kullanıcıdan e-posta ve şifre alır, AppState.login() ile doğrular.
 @Composable
 fun LoginScreen(
-    onNavigateToHome: () -> Unit,
-    onNavigateToRegister: () -> Unit
+    onNavigateToHome: () -> Unit,     // Başarılı girişte ana ekrana geç
+    onNavigateToRegister: () -> Unit  // Kayıt ol linkine tıklandığında
 ) {
     var email           by remember { mutableStateOf("") }
     var password        by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) }
+    var passwordVisible by remember { mutableStateOf(false) }  // Şifre göster/gizle
     var errorMessage    by remember { mutableStateOf("") }
+
+    // Türkçe karakterleri (ş, ğ, ü, ö, ç, ı…) filtreleyen yardımcı fonksiyon.
+    // E-posta ve şifre alanlarında bu karakterler geçersizdir.
+    fun stripTurkish(s: String) = s.filter { it !in "şŞğĞüÜöÖçÇıİ" }
 
     Column(
         modifier = Modifier
@@ -44,6 +49,7 @@ fun LoginScreen(
     ) {
         Spacer(modifier = Modifier.weight(0.4f))
 
+        // Logo ve başlık bölümü
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.fillMaxWidth()
@@ -69,11 +75,12 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(48.dp))
 
+        // E-posta alanı
         Text("E-posta", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
         Spacer(modifier = Modifier.height(8.dp))
         OutlinedTextField(
             value         = email,
-            onValueChange = { email = it; errorMessage = "" },
+            onValueChange = { email = stripTurkish(it); errorMessage = "" },
             placeholder   = { Text("ornek@email.com", color = TextSecondary) },
             leadingIcon   = { Icon(Icons.Filled.Email, null, tint = TextSecondary) },
             singleLine    = true,
@@ -90,11 +97,12 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Şifre alanı — göz ikonu ile göster/gizle
         Text("Şifre", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
         Spacer(modifier = Modifier.height(8.dp))
         OutlinedTextField(
             value         = password,
-            onValueChange = { password = it; errorMessage = "" },
+            onValueChange = { password = stripTurkish(it); errorMessage = "" },
             placeholder   = { Text("••••••••", color = TextSecondary) },
             leadingIcon   = { Icon(Icons.Filled.Lock, null, tint = TextSecondary) },
             trailingIcon  = {
@@ -106,6 +114,7 @@ fun LoginScreen(
                     )
                 }
             },
+            // Şifre görünürse metin, gizliyse nokta karakterleri göster
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             singleLine    = true,
             shape         = RoundedCornerShape(12.dp),
@@ -118,6 +127,7 @@ fun LoginScreen(
             )
         )
 
+        // Hata mesajı — boş alan veya yanlış bilgi durumunda gösterilir
         if (errorMessage.isNotEmpty()) {
             Spacer(modifier = Modifier.height(8.dp))
             Text(
@@ -129,11 +139,13 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
+        // Giriş yap butonu
         Button(
             onClick = {
                 when {
                     email.isBlank()    -> errorMessage = "E-posta adresi boş bırakılamaz."
                     password.isBlank() -> errorMessage = "Şifre boş bırakılamaz."
+                    // AppState.login() e-posta ve şifreyi kontrol eder
                     !AppState.login(email, password) -> errorMessage = "E-posta veya şifre hatalı."
                     else -> onNavigateToHome()
                 }
@@ -147,6 +159,7 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
+        // "Hesabınız yok mu? Kayıt Ol" linki — buildAnnotatedString ile iki farklı renk
         Text(
             text = buildAnnotatedString {
                 withStyle(SpanStyle(color = TextSecondary)) { append("Hesabınız yok mu?  ") }

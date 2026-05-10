@@ -22,12 +22,16 @@ import com.yusa.autolink.data.AppState
 import com.yusa.autolink.ui.components.VehicleCard
 import com.yusa.autolink.ui.theme.*
 
+// Ana sayfa — giriş yapan müşteriye ilk gösterilen ekran.
+// Kayıtlı aracı varsa araç kartı, yoksa ekleme kartı gösterilir.
+// İki büyük hizmet kartı: Araba Yıkama ve Oto Bakım.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    onNavigateToBusinessList: (String) -> Unit,
-    onAddVehicle: () -> Unit = {}
+    onNavigateToBusinessList: (String) -> Unit,  // "washing" veya "maintenance" ile işletme listesine git
+    onAddVehicle: () -> Unit = {}                // Araç ekleme kartına tıklanınca Araçlarım sekmesine geç
 ) {
+    // Sadece ilk aracı göster; tüm araçlar Araçlarım sekmesinde görünür
     val firstVehicle = AppState.userVehicles.firstOrNull()
 
     Scaffold(
@@ -35,6 +39,7 @@ fun HomeScreen(
             TopAppBar(
                 title = {
                     Column {
+                        // İsmin sadece ilk sözcüğünü kullan (ör. "Merhaba, Eren")
                         Text(
                             text       = "Merhaba, ${AppState.currentUserName.split(" ").firstOrNull() ?: "Kullanıcı"}",
                             fontSize   = 20.sp,
@@ -61,6 +66,7 @@ fun HomeScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Araç kartı veya "Araç Ekle" kartı
             if (firstVehicle != null) {
                 VehicleCard(vehicle = firstVehicle)
             } else {
@@ -74,6 +80,7 @@ fun HomeScreen(
                 color      = TextPrimary
             )
 
+            // Araba yıkama hizmet kartı
             ServiceTypeCard(
                 title           = "Araba Yıkama",
                 description     = "Hızlı ve detaylı yıkama hizmetleri",
@@ -82,6 +89,7 @@ fun HomeScreen(
                 onClick         = { onNavigateToBusinessList("washing") }
             )
 
+            // Oto bakım hizmet kartı
             ServiceTypeCard(
                 title           = "Oto Bakım",
                 description     = "Yağ değişimi, lastik ve genel bakım",
@@ -93,6 +101,7 @@ fun HomeScreen(
     }
 }
 
+// Araç eklenmemişse gösterilen uyarı kartı — tıklanınca Araçlarım sekmesine yönlendirir
 @Composable
 private fun NoVehicleCard(onAddVehicle: () -> Unit) {
     Card(
@@ -135,6 +144,7 @@ private fun NoVehicleCard(onAddVehicle: () -> Unit) {
     }
 }
 
+// Büyük hizmet kartı (Araba Yıkama / Oto Bakım)
 @Composable
 private fun ServiceTypeCard(
     title: String,
