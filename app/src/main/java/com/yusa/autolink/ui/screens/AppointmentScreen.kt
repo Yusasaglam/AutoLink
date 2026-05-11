@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import com.yusa.autolink.data.AppState
 import com.yusa.autolink.data.CAR_BRAND_NAMES
 import com.yusa.autolink.data.modelsFor
+import com.yusa.autolink.data.model.AppointmentStatus
 import com.yusa.autolink.data.model.BusinessService
 import com.yusa.autolink.data.model.BusinessType
 import com.yusa.autolink.data.model.Vehicle
@@ -82,17 +83,17 @@ fun AppointmentScreen(
     var selectedDate by remember { mutableStateOf("") }
     var selectedTime by remember { mutableStateOf("") }
 
-    // Seçili tarihte bu işletmede dolu olan saatler
-    val bookedTimes = remember(selectedDate) {
-        AppState.allAppointments
-            .filter { appt ->
-                appt.businessName == business.name &&
-                appt.date         == selectedDate   &&
-                appt.status != com.yusa.autolink.data.model.AppointmentStatus.CANCELLED
-            }
-            .map { it.time }
-            .toSet()
-    }
+    // Seçili tarihte bu işletmede dolu olan saatler.
+    // allAppointments bir SnapshotStateList olduğundan Compose değişiklikleri izler
+    // ve yeni randevu eklenince ya da tarih değişince otomatik güncellenir.
+    val bookedTimes = AppState.allAppointments
+        .filter { appt ->
+            appt.businessName == business.name &&
+            appt.date         == selectedDate   &&
+            appt.status != AppointmentStatus.CANCELLED
+        }
+        .map { it.time }
+        .toSet()
 
     val vehicleReady   = vehicleBrand.isNotBlank() && vehicleModel.isNotBlank()
     val deliveryReady  = deliveryType == "self" || deliveryAddress.isNotBlank()
@@ -507,8 +508,7 @@ fun AppointmentScreen(
                         isSelected = selectedDate == date,
                         onClick    = {
                             selectedDate = date
-                            // Seçili saat yeni tarihte doluysa sıfırla
-                            if (selectedTime in bookedTimes) selectedTime = ""
+                            selectedTime = ""
                         }
                     )
                 }

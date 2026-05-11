@@ -3,6 +3,7 @@ package com.yusa.autolink.data
 import android.content.Context
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import androidx.compose.runtime.mutableStateListOf
 import com.yusa.autolink.data.model.AccountType
 import com.yusa.autolink.data.model.Appointment
 import com.yusa.autolink.data.model.AppointmentStatus
@@ -58,7 +59,8 @@ object AppState {
     var userAppointments: MutableList<Appointment> = mutableListOf()
 
     // Tüm kullanıcıların randevularının birleşik listesi — işletme paneli bu listeyi okur
-    val allAppointments: MutableList<Appointment> = mutableListOf()
+    // SnapshotStateList: Compose değişiklikleri otomatik algılar ve ekranları günceller
+    val allAppointments = mutableStateListOf<Appointment>()
 
     // allAppointments listesini registeredUsers'daki tüm randevulardan yeniden oluşturur.
     // Durum değişikliklerinden sonra çağrılır.

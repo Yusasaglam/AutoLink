@@ -113,11 +113,9 @@ fun BusinessMainScreen(onNavigateToLogin: () -> Unit) {
 
 @Composable
 private fun AppointmentsTab(business: Business?, accentColor: Color) {
-    var refreshKey by remember { mutableIntStateOf(0) }
     val businessName = business?.name ?: ""
-    val allAppts = remember(refreshKey) {
-        AppState.allAppointments.filter { it.businessName == businessName }
-    }
+    // allAppointments bir SnapshotStateList — yeni randevu gelince Compose otomatik günceller
+    val allAppts = AppState.allAppointments.filter { it.businessName == businessName }
 
     var filterStatus by remember { mutableStateOf<AppointmentStatus?>(null) }
     val displayed = if (filterStatus == null) allAppts
@@ -166,7 +164,6 @@ private fun AppointmentsTab(business: Business?, accentColor: Color) {
                         accentColor = accentColor,
                         onStatusChange = { newStatus ->
                             AppState.updateAppointmentStatus(appt.id, newStatus)
-                            refreshKey++
                         }
                     )
                 }
