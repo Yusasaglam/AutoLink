@@ -25,13 +25,24 @@ import com.yusa.autolink.data.AppState
 import com.yusa.autolink.data.model.AccountType
 import com.yusa.autolink.ui.theme.*
 
-// Kayıt ekranı — hem müşteri hem işletme kaydı bu ekrandan yapılır.
-// Hesap tipine göre form alanları dinamik olarak değişir.
+// ============================================================
+// RegisterScreen — Hem müşteri hem işletme kaydı bu ekrandan yapılır
+//
+// Akış:
+//   1. Hesap tipi seçilir: Müşteri veya İşletme
+//   2. Müşteri → ad, e-posta, telefon, şifre
+//      İşletme → ek olarak işletme adı, adres, hizmet türü (yıkama/bakım)
+//   3. Validasyon: boş alan ve şifre uzunluğu kontrolü
+//   4. AppState.register() → e-posta zaten kayıtlıysa false döner
+//   5. İşletme kaydında otomatik olarak bir Business nesnesi de oluşturulur
+//
+// Hesap tipine göre form alanları dinamik olarak gösterilir/gizlenir.
+// ============================================================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(
-    onNavigateToHome: () -> Unit,   // Kayıt başarılıysa ana ekrana geç
-    onNavigateBack: () -> Unit      // Geri tuşu için
+    onNavigateToHome: () -> Unit,   // Başarılı kayıtta çağrılır — AppNavigation yönlendirir
+    onNavigateBack: () -> Unit      // Geri tuşu — Login'e döner
 ) {
     var selectedType        by remember { mutableStateOf(AccountType.CUSTOMER) }
     var selectedServiceType by remember { mutableStateOf("washing") }  // "washing" veya "maintenance"
@@ -183,7 +194,10 @@ fun RegisterScreen(
     }
 }
 
-// Hesap tipi seçim kartı (Müşteri / İşletme)
+// ── AccountTypeCard ───────────────────────────────────────────────────────────
+// Müşteri veya İşletme seçimindeki kart bileşeni
+// isSelected → seçili kart mavi çerçeve + soluk mavi arka plan alır
+// modifier = Modifier.weight(1f) → iki kart yan yana eşit genişlikte durur
 @Composable
 private fun AccountTypeCard(
     title: String,
@@ -214,7 +228,9 @@ private fun AccountTypeCard(
     }
 }
 
-// İşletme tipi seçim kartı (Araba Yıkama / Oto Bakım)
+// ── ServiceTypeCard ───────────────────────────────────────────────────────────
+// İşletme tipini seçmek için kullanılan kart (Araba Yıkama / Oto Bakım)
+// Sadece AccountType.BUSINESS seçildiğinde gösterilir
 @Composable
 private fun ServiceTypeCard(
     title: String,
@@ -243,7 +259,9 @@ private fun ServiceTypeCard(
     }
 }
 
-// Tekrar kullanılabilir form alanı bileşeni
+// ── RegisterField ─────────────────────────────────────────────────────────────
+// Kayıt formundaki tekrar eden OutlinedTextField'ları sadeleştiren yardımcı bileşen
+// keyboardType parametresi → E-posta alanı için Email, telefon için Phone klavyesi açılır
 @Composable
 private fun RegisterField(
     label: String,

@@ -22,16 +22,24 @@ import com.yusa.autolink.data.AppState
 import com.yusa.autolink.ui.components.VehicleCard
 import com.yusa.autolink.ui.theme.*
 
-// Ana sayfa — giriş yapan müşteriye ilk gösterilen ekran.
-// Kayıtlı aracı varsa araç kartı, yoksa ekleme kartı gösterilir.
-// İki büyük hizmet kartı: Araba Yıkama ve Oto Bakım.
+// ============================================================
+// HomeScreen — Müşterinin ana sayfası (sekme 0)
+//
+// Gösterilen içerik:
+//   • Üst bar: "Merhaba, [isim]" — AppState.currentUserName'den gelir
+//   • Araç kartı veya "Araç Ekle" kartı:
+//       - Araç varsa → VehicleCard (mavi kart, ilk araç gösterilir)
+//       - Yoksa      → NoVehicleCard (tıklanınca Araçlarım sekmesi açılır)
+//   • Araba Yıkama kartı → "washing" parametresiyle işletme listesine gider
+//   • Oto Bakım kartı    → "maintenance" parametresiyle işletme listesine gider
+// ============================================================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    onNavigateToBusinessList: (String) -> Unit,  // "washing" veya "maintenance" ile işletme listesine git
-    onAddVehicle: () -> Unit = {}                // Araç ekleme kartına tıklanınca Araçlarım sekmesine geç
+    onNavigateToBusinessList: (String) -> Unit, // "washing" veya "maintenance"
+    onAddVehicle: () -> Unit = {}               // MainScreen sekme = 2'ye geçer
 ) {
-    // Sadece ilk aracı göster; tüm araçlar Araçlarım sekmesinde görünür
+    // firstOrNull() → liste boşsa null döner; null kontrolü aşağıda yapılır
     val firstVehicle = AppState.userVehicles.firstOrNull()
 
     Scaffold(
@@ -39,7 +47,7 @@ fun HomeScreen(
             TopAppBar(
                 title = {
                     Column {
-                        // İsmin sadece ilk sözcüğünü kullan (ör. "Merhaba, Eren")
+                        // split(" ").firstOrNull() → "Eren Tunç" → sadece "Eren" gösterir
                         Text(
                             text       = "Merhaba, ${AppState.currentUserName.split(" ").firstOrNull() ?: "Kullanıcı"}",
                             fontSize   = 20.sp,
@@ -66,10 +74,12 @@ fun HomeScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Araç kartı veya "Araç Ekle" kartı
+            // Araç durumuna göre farklı kart gösterilir
             if (firstVehicle != null) {
+                // Components.kt'deki VehicleCard bileşeni — mavi arka planlı araç kartı
                 VehicleCard(vehicle = firstVehicle)
             } else {
+                // Araç eklenmemişse kullanıcıyı Araçlarım sekmesine yönlendiren kart
                 NoVehicleCard(onAddVehicle = onAddVehicle)
             }
 
@@ -80,7 +90,7 @@ fun HomeScreen(
                 color      = TextPrimary
             )
 
-            // Araba yıkama hizmet kartı
+            // Mavi kart → yıkama işletmeleri listesine git
             ServiceTypeCard(
                 title           = "Araba Yıkama",
                 description     = "Hızlı ve detaylı yıkama hizmetleri",
@@ -89,7 +99,7 @@ fun HomeScreen(
                 onClick         = { onNavigateToBusinessList("washing") }
             )
 
-            // Oto bakım hizmet kartı
+            // Yeşil kart → bakım işletmeleri listesine git
             ServiceTypeCard(
                 title           = "Oto Bakım",
                 description     = "Yağ değişimi, lastik ve genel bakım",
@@ -101,7 +111,10 @@ fun HomeScreen(
     }
 }
 
-// Araç eklenmemişse gösterilen uyarı kartı — tıklanınca Araçlarım sekmesine yönlendirir
+// ── NoVehicleCard ─────────────────────────────────────────────────────────────
+// Kullanıcının hiç aracı yokken gösterilen uyarı kartı.
+// Tıklanınca MainScreen'deki onAddVehicle lambda'sı çağrılır
+// ve selectedTab = 2 yapılarak Araçlarım sekmesi açılır.
 @Composable
 private fun NoVehicleCard(onAddVehicle: () -> Unit) {
     Card(
@@ -114,6 +127,7 @@ private fun NoVehicleCard(onAddVehicle: () -> Unit) {
             modifier          = Modifier.padding(20.dp).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Soluk renk → "henüz eklenmedi" mesajını görsel olarak destekler
             Icon(
                 Icons.Filled.DirectionsCar,
                 contentDescription = null,
@@ -134,6 +148,7 @@ private fun NoVehicleCard(onAddVehicle: () -> Unit) {
                     color    = TextSecondary
                 )
             }
+            // + ikonu → tıklanabilir olduğunu görsel olarak belirtir
             Icon(
                 Icons.Filled.Add,
                 contentDescription = null,
@@ -144,7 +159,10 @@ private fun NoVehicleCard(onAddVehicle: () -> Unit) {
     }
 }
 
-// Büyük hizmet kartı (Araba Yıkama / Oto Bakım)
+// ── ServiceTypeCard ───────────────────────────────────────────────────────────
+// Ana sayfadaki büyük hizmet kartı (Araba Yıkama / Oto Bakım).
+// backgroundColor parametresi ile her kart farklı renkte olabilir.
+// 120dp sabit yükseklik → iki kart alt alta düzgün görünür.
 @Composable
 private fun ServiceTypeCard(
     title: String,
@@ -169,8 +187,10 @@ private fun ServiceTypeCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(title, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 Spacer(modifier = Modifier.height(6.dp))
+                // Açıklama metni hafif saydam → başlıktan görsel olarak ayrışır
                 Text(description, fontSize = 13.sp, color = Color.White.copy(alpha = 0.85f))
             }
+            // İkon sağda, hafif saydam
             Icon(
                 imageVector        = icon,
                 contentDescription = null,

@@ -1,79 +1,93 @@
 package com.yusa.autolink.data.model
 
-// Kullanıcı hesap tipi: müşteri mi yoksa işletme mi?
+// ============================================================
+// Models.kt — Uygulamanın tüm veri modelleri
+//
+// Bu dosya OOP'un temel yapı taşlarını içerir:
+//   • enum class  → sabit değer kümeleri (tip güvenliği sağlar)
+//   • data class  → veri tutan nesneler (equals/copy otomatik gelir)
+//
+// Tüm modeller buraya toplandı; hangi verinin ne anlama
+// geldiği tek yerden takip edilebilir.
+// ============================================================
+
+// Kullanıcının hesap tipi — müşteri mi işletme sahibi mi?
+// String "musteri"/"isletme" yerine enum kullanıldı: yanlış yazım imkânsız.
 enum class AccountType { CUSTOMER, BUSINESS }
 
-// İşletme türü: araba yıkama veya oto bakım
+// İşletmenin hizmet türü — araba yıkama veya oto bakım
+// BusinessListScreen bu değere göre filtreleme yapar.
 enum class BusinessType { WASHING, MAINTENANCE }
 
-// Randevu durumu: beklemede, onaylandı, tamamlandı, iptal edildi
+// Bir randevunun yaşam döngüsü:
+// PENDING (beklemede) → CONFIRMED (onaylandı) → COMPLETED (tamamlandı)
+//                     ↘ CANCELLED (iptal)
+// İşletme PENDING olanı onaylar ya da reddeder.
+// Müşteri PENDING olanı iptal edebilir.
+// İşletme CONFIRMED olanı tamamlandı olarak işaretler.
 enum class AppointmentStatus { PENDING, CONFIRMED, COMPLETED, CANCELLED }
 
-// Temel kullanıcı bilgisi (ad, telefon, e-posta)
+// Temel kullanıcı bilgisi — AppState'teki RegisteredUser daha kapsamlıdır,
+// bu model eski uyumluluk için tutulmaktadır.
 data class User(val name: String, val phone: String, val email: String)
 
 // Kullanıcının kayıtlı aracı
+// engine alanı isteğe bağlıdır (default = "") çünkü bazı kullanıcılar
+// motor bilgisini bilmeyebilir veya girmek istemeyebilir.
 data class Vehicle(
-    val id: Int,           // Benzersiz araç numarası
-    val brand: String,     // Marka (ör. Renault, BMW)
-    val model: String,     // Model (ör. Clio, X5)
-    val year: Int,         // Model yılı
-    val plate: String,     // Plaka (ör. 34 ABC 123)
-    val fuelType: String,  // Yakıt tipi (Benzin, Dizel, LPG…)
-    val engine: String = ""// Motor hacmi / tipi (ör. 1.5 dCi) — isteğe bağlı
-)
-
-// Karşılama ekranı (onboarding) için her sayfanın içeriği
-data class OnboardingPage(val title: String, val description: String, val iconName: String)
-
-// Uygulama genelinde hizmet kategorisi (ör. Araba Yıkama, Oto Bakım)
-data class Service(
-    val id: Int,
-    val name: String,
-    val description: String,
-    val averagePrice: Int,  // Ortalama ücret (₺)
-    val duration: String,   // Tahmini süre (ör. "45-60 dk")
-    val iconName: String    // İkon adı → Components.getServiceIcon() ile çözülür
+    val id: Int,           // Her aracın benzersiz numarası — güncelleme/silmede kullanılır
+    val brand: String,     // Marka  (ör. Renault, BMW)
+    val model: String,     // Model  (ör. Clio 4, 3 Serisi)
+    val year: Int,         // Model yılı (ör. 2019)
+    val plate: String,     // Plaka  (ör. 34 ABC 123)
+    val fuelType: String,  // Yakıt tipi: Benzin, Dizel, LPG, Elektrik, Hibrit
+    val engine: String = ""// Motor bilgisi (ör. 1.5 dCi) — boş bırakılabilir
 )
 
 // Bir işletmenin sunduğu tekil hizmet ve fiyatı
+// AppointmentScreen bu listeyi gösterir; kullanıcı birini seçer.
+// id alanı hizmet silinirken hangi kaydın kaldırılacağını belirler.
 data class BusinessService(
     val id: Int    = 0,
     val name: String = "",
-    val price: Int = 0
+    val price: Int = 0   // Türk Lirası cinsinden sabit fiyat
 )
 
 // Bir servis işletmesinin tüm bilgileri
+// DemoData'daki sabit işletmeler ve kullanıcıların oluşturduğu
+// işletmeler aynı Business modeline uyar.
 data class Business(
     val id: Int,
     val name: String,
-    val rating: Float,          // Ortalama kullanıcı puanı (1.0–5.0)
-    val distanceKm: Float,      // Mesafe km cinsinden
-    val distanceText: String,   // Gösterim metni (ör. "1.2 km")
-    val startingPrice: Int,     // Başlangıç fiyatı — kart alt kısmında gösterilir
-    val isVerified: Boolean,    // OtoGüven tarafından onaylanmış mı?
+    val rating: Float,          // Ortalama kullanıcı puanı (1.0 – 5.0)
+    val distanceKm: Float,      // Mesafe — km cinsinden, sıralama için kullanılır
+    val distanceText: String,   // Görüntüleme metni  (ör. "1.2 km", "800 m")
+    val startingPrice: Int,     // Başlangıç fiyatı — işletme kartının altında gösterilir
+    val isVerified: Boolean,    // OtoGüven tarafından onaylanmış mı? (rozet gösterilir)
     val address: String,
-    val hasValet: Boolean,      // Vale hizmeti sunuyor mu? İşletme panelinden açılır.
-    val onSiteService: Boolean, // Yerinde hizmet sunuyor mu? İşletme panelinden açılır.
-    val isAvailable: Boolean,   // Şu an randevu kabul ediyor mu?
-    val type: BusinessType,
+    val hasValet: Boolean,      // Vale hizmeti var mı? — işletme sahibi açıp kapatabilir
+    val onSiteService: Boolean, // Yerinde (müşteri adresine) hizmet var mı?
+    val isAvailable: Boolean,   // Şu an randevu kabul ediyor mu? ("Müsait"/"Meşgul" rozeti)
+    val type: BusinessType,     // WASHING veya MAINTENANCE — listeyi filtrelemek için
     val phone: String = "",
-    val services: MutableList<BusinessService> = mutableListOf() // İşletmenin hizmet listesi
+    val services: MutableList<BusinessService> = mutableListOf() // İşletmenin hizmet/fiyat listesi
 )
 
 // Bir müşteri randevusunun tüm bilgileri
+// userRating = 0 → kullanıcı henüz puan vermemiş demektir.
+// hasValet / isOnSite → randevu sırasında seçilen teslimat tipi.
 data class Appointment(
     val id: Int,
     val businessName: String,
     val serviceName: String,
-    val date: String,            // Seçilen tarih (ör. "12 Mayıs 2026")
-    val time: String,            // Seçilen saat (ör. "10:30")
+    val date: String,            // Seçilen tarih metni (ör. "12 Mayıs 2026")
+    val time: String,            // Seçilen saat       (ör. "10:30")
     val totalPrice: Int,         // Toplam ücret (₺)
-    val vehicleName: String,     // Araç açıklaması (ör. "Renault Clio 4 2019 (Dizel)")
+    val vehicleName: String,     // Araç açıklaması    (ör. "Renault Clio 4 2019 (Dizel)")
     val status: AppointmentStatus,
     val hasValet: Boolean = false,      // Vale talebi var mı?
     val valetAddress: String = "",      // Vale için araç teslim adresi
     val isOnSite: Boolean = false,      // Yerinde hizmet talebi var mı?
     val onSiteAddress: String = "",     // Yerinde hizmet için hizmet adresi
-    val userRating: Int = 0             // Kullanıcının verdiği puan (0 = henüz verilmedi, 1–5)
+    val userRating: Int = 0             // 0 = puan verilmedi, 1–5 = yıldız sayısı
 )
