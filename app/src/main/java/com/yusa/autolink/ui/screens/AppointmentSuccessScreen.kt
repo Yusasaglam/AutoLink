@@ -18,8 +18,20 @@ import androidx.compose.ui.unit.sp
 import com.yusa.autolink.ui.components.PrimaryButton
 import com.yusa.autolink.ui.theme.*
 
-// Randevu başarıyla oluşturulduğunda gösterilen ekran.
-// Kullanıcı randevularına gidebilir veya ana sayfaya dönebilir.
+// ============================================================
+// AppointmentSuccessScreen — Randevu onay ekranı
+//
+// Kullanıcı "Randevuyu Onayla" butonuna bastıktan sonra açılır.
+// Randevu bilgileri AppNavigation üzerinden AppState'teki
+// lastXxx alanlarından parametre olarak bu ekrana iletilir.
+//
+// Geri tuşu ile Randevu ekranına dönülemez — popUpTo(MAIN)
+// sayesinde back stack temizlenmiştir.
+//
+// İki buton:
+//   "Randevularımı Gör" → selectedTab = 1 yaparak MAIN açar
+//   "Ana Sayfaya Dön"   → selectedTab = 0 yaparak MAIN açar
+// ============================================================
 @Composable
 fun AppointmentSuccessScreen(
     businessName:              String,
@@ -28,8 +40,9 @@ fun AppointmentSuccessScreen(
     time:                      String,
     price:                     Int,
     onNavigateToHome:          () -> Unit,
-    onNavigateToMyAppointments: () -> Unit   // "Randevularımı Gör" butonu için
+    onNavigateToMyAppointments: () -> Unit
 ) {
+    // SpaceBetween → içerik üst-orta-alt üçe bölünür, eşit boşlukla
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -40,11 +53,13 @@ fun AppointmentSuccessScreen(
     ) {
         Spacer(modifier = Modifier.height(40.dp))
 
-        // Onay ikonu ve başlık
+        // ── Başarı ikonu ve başlık ────────────────────────────────────
+        // Yeşil daire içinde beyaz tik ikonu — standart "başarı" görsel dili
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Box(
                 modifier         = Modifier
                     .size(100.dp)
+                    // copy(alpha = 0.10f) → soluk yeşil daire, ikon daha net görünür
                     .background(SuccessGreen.copy(alpha = 0.10f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
@@ -72,7 +87,8 @@ fun AppointmentSuccessScreen(
             )
         }
 
-        // Randevu bilgi kartı
+        // ── Randevu detay kartı ───────────────────────────────────────
+        // elevation = 4.dp → diğer kartlara göre daha belirgin gölge, önem hissi verir
         Card(
             modifier  = Modifier.fillMaxWidth(),
             shape     = RoundedCornerShape(20.dp),
@@ -87,12 +103,13 @@ fun AppointmentSuccessScreen(
                     color      = TextPrimary
                 )
                 Spacer(modifier = Modifier.height(16.dp))
+                // SuccessDetailRow → etiket : değer çiftini yan yana gösterir
                 SuccessDetailRow("İşletme", businessName)
                 SuccessDetailRow("Hizmet",  serviceName)
                 SuccessDetailRow("Tarih",   date)
                 SuccessDetailRow("Saat",    time)
                 HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-                // Net hizmet bedeli
+                // Net hizmet bedeli — büyük font, yeşil renk, öne çıkarılmış
                 Row(
                     modifier              = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -109,14 +126,14 @@ fun AppointmentSuccessScreen(
             }
         }
 
-        // Aksiyon butonları
+        // ── Aksiyon butonları ─────────────────────────────────────────
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            // Randevularımı Gör - doğrudan Randevularım sekmesine gider
+            // Birincil buton → randevular sekmesine direkt gider (selectedTab = 1)
             PrimaryButton(
                 text    = "Randevularımı Gör",
                 onClick = onNavigateToMyAppointments
             )
-            // Ana sayfaya dön - ikincil seçenek
+            // İkincil buton → ana sayfa (selectedTab = 0), outlined stil daha az ağırlıklı
             OutlinedButton(
                 onClick  = onNavigateToHome,
                 modifier = Modifier.fillMaxWidth().height(52.dp),
@@ -128,7 +145,8 @@ fun AppointmentSuccessScreen(
     }
 }
 
-// Bilgi satırı (etiket : değer)
+// ── SuccessDetailRow ──────────────────────────────────────────────────────────
+// Randevu detay kartındaki her satır: solda etiket (gri), sağda değer (siyah)
 @Composable
 private fun SuccessDetailRow(label: String, value: String) {
     Row(

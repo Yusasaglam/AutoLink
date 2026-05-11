@@ -10,26 +10,46 @@ import com.yusa.autolink.data.AppState
 import com.yusa.autolink.data.model.AccountType
 import com.yusa.autolink.ui.screens.*
 
-// Tüm ekran rota isimleri tek yerde - navigasyonu takip etmek kolaylaşır
+// ============================================================
+// AppNavigation.kt — Tüm ekran geçişleri tek yerden yönetilir
+//
+// Jetpack Compose Navigation kullanır. Her ekranın bir "route"
+// (yol/adres) vardır; tıpkı web'deki URL gibi. Ekranlar arası
+// geçiş navController.navigate("route") ile yapılır.
+//
+// Navigasyon akışı:
+//   Splash → (oturum varsa) MAIN veya BUSINESS_MAIN
+//          → (yoksa)        LOGIN
+//   LOGIN  → MAIN veya BUSINESS_MAIN
+//   MAIN   → BUSINESS_LIST → APPOINTMENT → APPOINTMENT_SUCCESS
+// ============================================================
+
+// Tüm route string'leri sabit olarak burada tanımlandı.
+// String yazmak yerine Routes.MAIN diye kullanmak,
+// yazım hatalarını derleme aşamasında yakalar.
 object Routes {
     const val SPLASH              = "splash"
     const val LOGIN               = "login"
     const val REGISTER            = "register"
-    const val MAIN                = "main"           // Müşteri ekranı
-    const val BUSINESS_MAIN      = "business_main"  // İşletme paneli
+    const val MAIN                = "main"           // Müşteri ana ekranı (alt menü)
+    const val BUSINESS_MAIN      = "business_main"  // İşletme sahibi paneli
     const val BUSINESS_LIST       = "business_list"
     const val APPOINTMENT         = "appointment"
     const val APPOINTMENT_SUCCESS = "appointment_success"
 }
 
-// Ana navigasyon yapısı - tüm ekran geçişleri burada tanımlanır
 @Composable
 fun AppNavigation() {
+    // NavController → ekranlar arası geçişi ve geri stack'ini yöneten nesne
     val navController = rememberNavController()
 
+    // NavHost → hangi route'da hangi ekranın açılacağını tanımlar
+    // startDestination → uygulama açıldığında ilk gösterilecek ekran
     NavHost(navController = navController, startDestination = Routes.SPLASH) {
 
-        // 1. Splash — oturum varsa direkt panele git, yoksa login'e
+        // 1. Splash — animasyonlu açılış ekranı
+        // Oturum açıksa kullanıcı tipine göre doğrudan panele gider (login ekranı atlanır).
+        // popUpTo(inclusive=true) → Splash geri stack'ten çıkarılır; geri tuşu Login'e dönmez.
         composable(Routes.SPLASH) {
             SplashScreen(
                 onNavigateToOnboarding = {
@@ -48,7 +68,9 @@ fun AppNavigation() {
             )
         }
 
-        // 2. Giriş ekranı
+        // 2. Giriş ekranı — e-posta + şifre doğrulama
+        // Başarılı girişte hesap tipine göre MAIN veya BUSINESS_MAIN'e gider.
+        // popUpTo(LOGIN, inclusive=true) → Login, geri stack'ten kaldırılır.
         composable(Routes.LOGIN) {
             LoginScreen(
                 onNavigateToHome = {
@@ -65,7 +87,8 @@ fun AppNavigation() {
             )
         }
 
-        // 3. Kayıt ekranı
+        // 3. Kayıt ekranı — müşteri veya işletme hesabı açma
+        // Başarılı kayıtta yine hesap tipine göre yönlendirme yapılır.
         composable(Routes.REGISTER) {
             RegisterScreen(
                 onNavigateToHome = {
@@ -80,10 +103,11 @@ fun AppNavigation() {
             )
         }
 
-        // 4. Müşteri ana ekranı
+        // 4a. Müşteri ana ekranı — alt menülü sarmalayıcı (Home/Randevular/Araçlar/Profil)
         composable(Routes.MAIN) {
             MainScreen(
                 onNavigateToBusinessList = { serviceType ->
+                    // "washing" veya "maintenance" parametresi URL'e eklenerek geçirilir
                     navController.navigate("${Routes.BUSINESS_LIST}/$serviceType")
                 },
                 onNavigateToLogin = {
@@ -94,7 +118,7 @@ fun AppNavigation() {
             )
         }
 
-        // 4b. İşletme paneli
+        // 4b. İşletme sahibi paneli — Randevular / Ücretlendirme / İşletmem sekmeleri
         composable(Routes.BUSINESS_MAIN) {
             BusinessMainScreen(
                 onNavigateToLogin = {
@@ -105,22 +129,27 @@ fun AppNavigation() {
             )
         }
 
-        // 5. İşletme listesi - serviceType: "washing" veya "maintenance"
+        // 5. İşletme listesi — URL parametresi olarak serviceType alır
+        // Örnek route: "business_list/washing"
+        // navArgument → parametrenin türünü tanımlar (String); null gelmez.
         composable(
             route     = "${Routes.BUSINESS_LIST}/{serviceType}",
             arguments = listOf(navArgument("serviceType") { type = NavType.StringType })
         ) { backStackEntry ->
+            // backStackEntry.arguments → URL'deki parametreleri okur
             val serviceType = backStackEntry.arguments?.getString("serviceType") ?: "washing"
             BusinessListScreen(
                 serviceType             = serviceType,
                 onNavigateToAppointment = { businessId ->
+                    // İşletme ID'si ve hizmet tipi sonraki ekrana URL ile taşınır
                     navController.navigate("${Routes.APPOINTMENT}/$businessId/$serviceType")
                 },
                 onNavigateBack = { navController.popBackStack() }
             )
         }
 
-        // 6. Randevu oluşturma - businessId + serviceType URL'den gelir
+        // 6. Randevu oluşturma ekranı — businessId (Int) + serviceType (String) alır
+        // Int ve String farklı navArgument tipleri: NavType.IntType / StringType
         composable(
             route     = "${Routes.APPOINTMENT}/{businessId}/{serviceType}",
             arguments = listOf(
@@ -135,14 +164,16 @@ fun AppNavigation() {
                 serviceType         = serviceType,
                 onNavigateToSuccess = {
                     navController.navigate(Routes.APPOINTMENT_SUCCESS) {
-                        popUpTo(Routes.MAIN)    // Geri tuşu MAIN'e döner
+                        // Başarı ekranından geri gidilirse MAIN'e dönülür (Appointment/BusinessList atlanır)
+                        popUpTo(Routes.MAIN)
                     }
                 },
                 onNavigateBack = { navController.popBackStack() }
             )
         }
 
-        // 7. Randevu başarı ekranı - AppState'ten randevu bilgilerini okur
+        // 7. Randevu başarı ekranı — randevu bilgileri AppState'teki lastXxx alanlarından okunur
+        // Bu ekrandan MAIN'e gidildiğinde selectedTab ile hangi sekmenin açılacağı belirlenir.
         composable(Routes.APPOINTMENT_SUCCESS) {
             AppointmentSuccessScreen(
                 businessName = AppState.lastBusinessName,
@@ -151,14 +182,14 @@ fun AppNavigation() {
                 time         = AppState.lastTime,
                 price        = AppState.lastPrice,
                 onNavigateToMyAppointments = {
-                    // MAIN'i tazele ve Randevularım sekmesini aç (sekme=1)
+                    // selectedTab = 1 → Randevularım sekmesi açılır
                     AppState.selectedTab = 1
                     navController.navigate(Routes.MAIN) {
                         popUpTo(Routes.MAIN) { inclusive = true }
                     }
                 },
                 onNavigateToHome = {
-                    // MAIN'i tazele ve Ana Sayfa sekmesini aç (sekme=0)
+                    // selectedTab = 0 → Ana Sayfa sekmesi açılır
                     AppState.selectedTab = 0
                     navController.navigate(Routes.MAIN) {
                         popUpTo(Routes.MAIN) { inclusive = true }

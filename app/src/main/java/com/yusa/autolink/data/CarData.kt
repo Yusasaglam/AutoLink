@@ -1,8 +1,20 @@
 package com.yusa.autolink.data
 
-// Dünya genelinde yaygın 37 otomobil markası ve her birinin modelleri.
-// Kullanıcı araç eklerken veya randevu alırken buradan seçim yapar.
-// LinkedHashMap kullanıldığı için markalar alfabetik sırada kalır.
+// ============================================================
+// CarData.kt — Araç marka ve model veritabanı
+//
+// Kullanıldığı yerler:
+//   • MyVehiclesScreen  → araç ekleme/düzenleme formu
+//   • AppointmentScreen → randevu alırken manuel araç girişi
+//
+// linkedMapOf kullanımı: ekleme sırası korunur (alfabetik).
+// Normal HashMap sırayı garanti etmez.
+//
+// Gerçek uygulamada bu veriler bir API'den gelirdi;
+// demo için statik liste kullanıldı.
+// ============================================================
+
+// Her marka → o markaya ait model listesi eşlemesi
 val CAR_BRANDS_MODELS: Map<String, List<String>> = linkedMapOf(
     "Abarth"         to listOf("500", "595", "695", "124 Spider"),
     "Alfa Romeo"     to listOf("Giulia", "Giulietta", "Stelvio", "Tonale", "147", "156", "159"),
@@ -42,9 +54,12 @@ val CAR_BRANDS_MODELS: Map<String, List<String>> = linkedMapOf(
     "Volvo"          to listOf("S60", "S90", "V60", "V90", "XC40", "XC60", "XC90", "C40", "EX30", "EX90")
 )
 
-// Sadece marka isimlerinin listesi — dropdown için kullanılır
+// Sadece marka adlarının listesi — dropdown'da göstermek için
+// keys.toList() → Map'in anahtar kümesini listeye çevirir
 val CAR_BRAND_NAMES: List<String> = CAR_BRANDS_MODELS.keys.toList()
 
-// Verilen markaya ait modelleri döndürür. Marka bulunamazsa boş liste.
+// Verilen markaya ait modelleri döndürür.
+// get() → marka bulunamazsa null; ?: emptyList() → null yerine boş liste döner.
+// Böylece çağıran kod null kontrolü yapmak zorunda kalmaz.
 fun modelsFor(brand: String): List<String> =
     CAR_BRANDS_MODELS[brand] ?: emptyList()

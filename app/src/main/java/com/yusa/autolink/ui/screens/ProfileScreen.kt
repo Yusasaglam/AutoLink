@@ -21,14 +21,23 @@ import androidx.compose.ui.unit.sp
 import com.yusa.autolink.data.AppState
 import com.yusa.autolink.ui.theme.*
 
-// Profil ekranı — aktif kullanıcının bilgilerini ve destek seçeneklerini gösterir.
+// ============================================================
+// ProfileScreen — Kullanıcı profili ve destek seçenekleri (sekme 3)
+//
+// İçerik:
+//   • Kullanıcı kartı: mavi arka plan, ismin baş harfi avatar olarak
+//     gösterilir (profil fotoğrafı yoktur), ad, telefon, e-posta
+//   • Destek menüsü: Bizi Arayın, E-posta, Hakkımızda (demo)
+//   • Çıkış Yap butonu: AppState.logout() → oturum kapatılır,
+//     giriş ekranına yönlendirilir
+// ============================================================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(onLogout: () -> Unit) {
     val userName  = AppState.currentUserName
     val userPhone = AppState.currentUserPhone
     val userEmail = AppState.currentUserEmail
-    // Profil resmi yerine ismin baş harfi gösterilir
+    // firstOrNull() → isim boşsa "?" gösterilir; uppercase yoksa büyük harf için toString() yeterli
     val initial   = userName.firstOrNull()?.toString() ?: "?"
 
     Scaffold(
@@ -50,7 +59,9 @@ fun ProfileScreen(onLogout: () -> Unit) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Kullanıcı bilgi kartı — mavi arka plan, baş harf avatarı
+            // ── Kullanıcı bilgi kartı ─────────────────────────────────
+            // Mavi arka plan + daire içinde baş harf → basit ama etkili avatar
+            // copy(alpha = 0.20f) → hafif saydam beyaz daire, mavi üstünde görünür
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape    = RoundedCornerShape(16.dp),
@@ -60,7 +71,7 @@ fun ProfileScreen(onLogout: () -> Unit) {
                     modifier          = Modifier.padding(20.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Daire içinde baş harf
+                    // CircleShape → daire şeklinde arka plan
                     Box(
                         modifier         = Modifier
                             .size(64.dp)
@@ -77,6 +88,7 @@ fun ProfileScreen(onLogout: () -> Unit) {
                     Spacer(modifier = Modifier.width(16.dp))
                     Column {
                         Text(userName,  fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        // isNotBlank() → boş veya sadece boşluk içeren telefon/e-posta gösterilmez
                         if (userPhone.isNotBlank()) {
                             Text(userPhone, fontSize = 14.sp, color = Color.White.copy(alpha = 0.85f))
                         }
@@ -89,7 +101,9 @@ fun ProfileScreen(onLogout: () -> Unit) {
 
             Text("Destek", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
 
-            // Destek menüsü
+            // ── Destek menüsü ─────────────────────────────────────────
+            // Tek Card içinde birden fazla satır + HorizontalDivider ile ayrılır
+            // Bu destek butonları demo amaçlı, gerçek işlev bağlanmadı
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape    = RoundedCornerShape(16.dp),
@@ -106,7 +120,10 @@ fun ProfileScreen(onLogout: () -> Unit) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Çıkış yap butonu — AppState.logout() çağrılır, giriş ekranına yönlendirilir
+            // ── Çıkış Yap butonu ─────────────────────────────────────
+            // AppState.logout() → kullanıcı verilerine dokunmaz,
+            // sadece aktif oturum referansları sıfırlanır ve SharedPreferences güncellenir.
+            // onLogout lambda'sı MainScreen üzerinden Login ekranına yönlendirir.
             Button(
                 onClick  = onLogout,
                 modifier = Modifier.fillMaxWidth().height(52.dp),
@@ -121,7 +138,9 @@ fun ProfileScreen(onLogout: () -> Unit) {
     }
 }
 
-// Menü satırı — ikon, metin ve sağ ok işareti
+// ── ProfileMenuItem ───────────────────────────────────────────────────────────
+// Destek menüsündeki her satır: ikon + metin + sağ ok ikonu
+// weight(1f) → metin mevcut alanı doldurur, sağ ok sağa yaslanır
 @Composable
 private fun ProfileMenuItem(icon: ImageVector, text: String) {
     Row(
@@ -131,6 +150,7 @@ private fun ProfileMenuItem(icon: ImageVector, text: String) {
         Icon(icon, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.size(22.dp))
         Spacer(modifier = Modifier.width(16.dp))
         Text(text = text, fontSize = 15.sp, modifier = Modifier.weight(1f))
+        // ChevronRight → "bu satır tıklanabilir" mesajı verir kullanıcıya
         Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = TextSecondary)
     }
 }

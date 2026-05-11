@@ -23,10 +23,23 @@ import com.yusa.autolink.data.model.Appointment
 import com.yusa.autolink.data.model.AppointmentStatus
 import com.yusa.autolink.ui.theme.*
 
+// ============================================================
+// MyAppointmentsScreen — Kullanıcının randevularını listeler (sekme 1)
+//
+// Özellikler:
+//   • LazyColumn → uzun listelerde sadece ekranda görünen kartlar
+//     render edilir, performans kazanılır
+//   • refreshKey → int state, değeri değişince liste yeniden okunur
+//     (iptal/puanlama sonrası ekranı güncellemek için kullanılır)
+//   • PENDING randevularda "İptal Et" butonu
+//   • COMPLETED randevularda 1-5 yıldız değerlendirme
+//   • StatusBadge → durum renkli rozet olarak gösterilir
+// ============================================================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MyAppointmentsScreen() {
-    // refreshKey değişince liste yeniden çizilir
+    // refreshKey her artışında remember(refreshKey) bloğu yeniden hesaplanır
+    // → AppState.userAppointments listesi tekrar okunur, liste güncellenir
     var refreshKey by remember { mutableIntStateOf(0) }
     val appointments = remember(refreshKey) { AppState.userAppointments.toList() }
 
@@ -41,6 +54,7 @@ fun MyAppointmentsScreen() {
         }
     ) { paddingValues ->
         if (appointments.isEmpty()) {
+            // Hiç randevu yoksa bilgilendirme ekranı gösterilir
             EmptyAppointmentsState(
                 modifier = Modifier
                     .fillMaxSize()
@@ -48,6 +62,8 @@ fun MyAppointmentsScreen() {
                     .padding(paddingValues)
             )
         } else {
+            // LazyColumn → tüm kartları tek seferde değil, görüntülendikçe çizer
+            // key = { it.id } → Compose hangi kartın güncellendiğini id ile takip eder
             LazyColumn(
                 modifier            = Modifier
                     .fillMaxSize()
@@ -60,10 +76,14 @@ fun MyAppointmentsScreen() {
                     AppointmentCard(
                         appointment = appointment,
                         onCancel    = {
+                            // AppState.updateAppointmentStatus → tüm kullanıcılar taranır,
+                            // ilgili randevu CANCELLED yapılır, SharedPreferences kaydedilir
                             AppState.updateAppointmentStatus(appointment.id, AppointmentStatus.CANCELLED)
-                            refreshKey++
+                            refreshKey++ // Listeyi yenile
                         },
                         onRate      = { rating ->
+                            // Puan verme → AppState'te randevu güncellenir,
+                            // işletmenin ortalama puanı da yeniden hesaplanır
                             AppState.rateAppointment(appointment.id, rating)
                             refreshKey++
                         }
@@ -74,6 +94,9 @@ fun MyAppointmentsScreen() {
     }
 }
 
+// ── EmptyAppointmentsState ────────────────────────────────────────────────────
+// Hiç randevu yokken gösterilen boş durum ekranı.
+// İkon + açıklama metni ile kullanıcıya ne yapması gerektiği anlatılır.
 @Composable
 private fun EmptyAppointmentsState(modifier: Modifier = Modifier) {
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
@@ -81,6 +104,7 @@ private fun EmptyAppointmentsState(modifier: Modifier = Modifier) {
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier            = Modifier.padding(32.dp)
         ) {
+            // Soluk ikon → "içerik yok" durumunu görsel olarak vurgular
             Icon(
                 Icons.Filled.DateRange,
                 contentDescription = null,
@@ -106,6 +130,12 @@ private fun EmptyAppointmentsState(modifier: Modifier = Modifier) {
     }
 }
 
+// ── AppointmentCard ───────────────────────────────────────────────────────────
+// Tek bir randevuyu gösteren kart.
+// İçerik duruma göre değişir:
+//   PENDING   → "İptal Et" butonu
+//   COMPLETED + puan=0  → yıldız seçim satırı
+//   COMPLETED + puan>0  → verilen puan gösterilir (tıklanamaz)
 @Composable
 private fun AppointmentCard(
     appointment: Appointment,
@@ -120,7 +150,7 @@ private fun AppointmentCard(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
 
-            // Üst satır: işletme adı + durum badge
+            // Üst satır: işletme adı (solda) + durum rozeti (sağda)
             Row(
                 modifier              = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -133,11 +163,13 @@ private fun AppointmentCard(
                     color      = TextPrimary,
                     modifier   = Modifier.weight(1f)
                 )
+                // Durum rozeti → rengi AppointmentStatus'a göre değişir
                 StatusBadge(status = appointment.status)
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            // Randevu detayları
             Text(appointment.serviceName, fontSize = 13.sp, color = TextSecondary)
             Text(appointment.vehicleName, fontSize = 13.sp, color = TextSecondary)
             Text(
@@ -146,7 +178,7 @@ private fun AppointmentCard(
                 color    = TextSecondary
             )
 
-            // Vale veya yerinde hizmet bilgisi varsa göster
+            // Vale veya yerinde hizmet adresi varsa mavi renkte göster
             if (appointment.hasValet && appointment.valetAddress.isNotBlank()) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
@@ -168,7 +200,7 @@ private fun AppointmentCard(
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp))
 
-            // Alt satır: fiyat + iptal butonu
+            // Fiyat — yeşil renk, "Toplam Ücret" etiketiyle sağ alt köşede
             Row(
                 modifier              = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -183,7 +215,7 @@ private fun AppointmentCard(
                 )
             }
 
-            // Beklemedeyse iptal butonu göster
+            // PENDING → kullanıcı iptal edebilir (Confirmed/Completed'da iptal yok)
             if (appointment.status == AppointmentStatus.PENDING) {
                 Spacer(modifier = Modifier.height(10.dp))
                 OutlinedButton(
@@ -199,14 +231,15 @@ private fun AppointmentCard(
                 }
             }
 
-            // Tamamlanmışsa yıldız değerlendirme göster
+            // COMPLETED → kullanıcı 1-5 yıldız verebilir
+            // userRating = 0 → henüz puan verilmedi (yıldız seçimi gösterilir)
+            // userRating > 0 → puan verilmiş (sadece gösterim, tıklanamaz)
             if (appointment.status == AppointmentStatus.COMPLETED) {
                 Spacer(modifier = Modifier.height(10.dp))
                 HorizontalDivider(color = CardBorder)
                 Spacer(modifier = Modifier.height(10.dp))
 
                 if (appointment.userRating == 0) {
-                    // Henüz puan verilmemiş — yıldız seçimi
                     Text(
                         "Hizmeti değerlendirin",
                         fontSize   = 13.sp,
@@ -214,22 +247,13 @@ private fun AppointmentCard(
                         color      = TextPrimary
                     )
                     Spacer(modifier = Modifier.height(6.dp))
-                    StarRow(
-                        currentRating = 0,
-                        onRate        = onRate
-                    )
+                    // onRate null değil → tıklanabilir modda
+                    StarRow(currentRating = 0, onRate = onRate)
                 } else {
-                    // Puan verilmiş — göster
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            "Değerlendirmeniz: ",
-                            fontSize = 13.sp,
-                            color    = TextSecondary
-                        )
-                        StarRow(
-                            currentRating = appointment.userRating,
-                            onRate        = null
-                        )
+                        Text("Değerlendirmeniz: ", fontSize = 13.sp, color = TextSecondary)
+                        // onRate = null → sadece gösterim modu (tıklanamaz)
+                        StarRow(currentRating = appointment.userRating, onRate = null)
                     }
                 }
             }
@@ -237,18 +261,22 @@ private fun AppointmentCard(
     }
 }
 
-// Yıldız satırı — onRate null ise sadece gösterim modunda çalışır
+// ── StarRow ───────────────────────────────────────────────────────────────────
+// 5 yıldızlı değerlendirme satırı.
+// onRate = lambda  → interaktif mod: tıklanınca puan verilir
+// onRate = null    → sadece gösterim modu: tıklanamaz, sadece mevcut puan gösterilir
 @Composable
 private fun StarRow(currentRating: Int, onRate: ((Int) -> Unit)?) {
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         for (i in 1..5) {
-            val filled = i <= currentRating
+            val filled = i <= currentRating // Bu yıldız dolu mu?
             IconButton(
-                onClick  = { onRate?.invoke(i) },
-                enabled  = onRate != null,
+                onClick  = { onRate?.invoke(i) }, // onRate null ise hiçbir şey olmaz
+                enabled  = onRate != null,         // null ise buton devre dışı
                 modifier = Modifier.size(32.dp)
             ) {
                 Icon(
+                    // Dolu yıldız → sarı, boş yıldız → soluk gri
                     imageVector = if (filled) Icons.Filled.Star else Icons.Filled.StarOutline,
                     contentDescription = "$i yıldız",
                     tint     = if (filled) Color(0xFFFFC107) else TextSecondary.copy(alpha = 0.4f),
@@ -259,6 +287,11 @@ private fun StarRow(currentRating: Int, onRate: ((Int) -> Unit)?) {
     }
 }
 
+// ── StatusBadge ───────────────────────────────────────────────────────────────
+// Randevu kartının sağ üstündeki renkli durum rozeti.
+// Triple(metin, arka plan rengi, metin rengi) → destructuring ile alınır.
+// Her durum kendi renk temasına sahiptir:
+//   CONFIRMED → yeşil,  PENDING → turuncu,  COMPLETED → mavi,  CANCELLED → kırmızı
 @Composable
 private fun StatusBadge(status: AppointmentStatus) {
     val (text, bgColor, textColor) = when (status) {

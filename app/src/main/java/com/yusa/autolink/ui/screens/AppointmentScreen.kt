@@ -31,12 +31,35 @@ import com.yusa.autolink.data.model.BusinessType
 import com.yusa.autolink.data.model.Vehicle
 import com.yusa.autolink.ui.theme.*
 
+// ============================================================
+// AppointmentScreen — Randevu oluşturma ekranı
+//
+// BusinessListScreen'den businessId + serviceType parametresiyle açılır.
+// Kullanıcı sırayla şunları seçer:
+//   1. Hizmet (BusinessService listesinden)
+//   2. Araç (kayıtlı araçlardan veya manuel giriş)
+//   3. Teslimat tipi: Ben götüreceğim / Vale / Yerinde hizmet
+//   4. Tarih (AVAILABLE_DATES listesi)
+//   5. Saat  (AVAILABLE_TIMES listesi — dolu saatler "Dolu" gösterilir)
+//
+// Tüm seçimler tamamlanınca "Randevuyu Onayla" butonu aktifleşir.
+// Onayda AppState.addAppointment() çağrılır, AppointmentSuccess'e geçilir.
+//
+// Dolu saat hesabı:
+//   bookedTimes → seçili tarihte aynı işletmeye alınmış aktif randevuların saatleri
+//   remember(selectedDate) → tarih değişince yeniden hesaplanır
+// ============================================================
+
+// Yakıt tipleri — hem kayıtlı araç seçiminde hem manuel girişte kullanılır
 private val FUEL_TYPES = listOf("Benzin", "Dizel", "LPG", "Elektrik", "Hibrit")
 
+// Randevu için seçilebilir tarihler (demo — gerçekte işletme takviminden gelirdi)
 private val AVAILABLE_DATES = listOf(
     "12 Mayıs 2026", "13 Mayıs 2026", "14 Mayıs 2026",
     "15 Mayıs 2026", "16 Mayıs 2026", "19 Mayıs 2026", "20 Mayıs 2026"
 )
+// Seçilebilir saatler — 13:00 öncesi öğleden önce, sonrası öğleden sonra
+// "chunked(4)" ile 4'lü satırlara bölünerek grid şeklinde gösterilir
 private val AVAILABLE_TIMES = listOf(
     "09:00", "09:30", "10:00", "10:30",
     "11:00", "11:30", "13:00", "13:30",
@@ -597,6 +620,9 @@ fun AppointmentScreen(
     }
 }
 
+// ── DeliveryOptionCard ────────────────────────────────────────────────────────
+// Teslimat tipi seçimi için kart (Ben götüreceğim / Vale / Yerinde hizmet)
+// RadioButton + border kombinasyonu seçili kartı görsel olarak vurgular
 @Composable
 private fun DeliveryOptionCard(
     icon:        androidx.compose.ui.graphics.vector.ImageVector,
@@ -654,6 +680,8 @@ private fun DeliveryOptionCard(
     }
 }
 
+// ── SummaryRow ────────────────────────────────────────────────────────────────
+// Randevu özet kartındaki her satır: solda etiket (gri), sağda değer (siyah)
 @Composable
 private fun SummaryRow(label: String, value: String) {
     Row(
@@ -665,6 +693,9 @@ private fun SummaryRow(label: String, value: String) {
     }
 }
 
+// ── BookedChip ────────────────────────────────────────────────────────────────
+// Dolu olan saatlerde SelectableChip yerine gösterilen gri "Dolu" etiketi
+// Kullanıcı tıklayamaz, sadece bilgi amaçlı
 @Composable
 private fun BookedChip(modifier: Modifier = Modifier) {
     Box(
@@ -685,6 +716,9 @@ private fun BookedChip(modifier: Modifier = Modifier) {
     }
 }
 
+// ── SelectableChip ────────────────────────────────────────────────────────────
+// Tarih ve saat seçimi için tıklanabilir chip
+// isSelected → mavi arka plan + beyaz metin; değilse → beyaz arka plan + siyah metin
 @Composable
 private fun SelectableChip(
     text: String,

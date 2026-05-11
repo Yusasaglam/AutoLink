@@ -30,6 +30,18 @@ import com.yusa.autolink.data.model.BusinessService
 import com.yusa.autolink.data.model.BusinessType
 import com.yusa.autolink.ui.theme.*
 
+// ============================================================
+// BusinessMainScreen — İşletme sahibinin yönetim paneli
+//
+// AccountType.BUSINESS ile kayıt olan kullanıcılar bu ekrana gelir.
+// 3 sekme içerir:
+//   0 → AppointmentsTab  : Gelen randevuları görüntüle/onayla/reddet
+//   1 → PricingTab       : Hizmet ekle/sil ve fiyat yönet
+//   2 → BusinessProfileTab: İşletme bilgileri, vale/yerinde hizmet ayarları
+//
+// business state'i PricingTab ve ProfileTab'dan güncellenince yeniden
+// okunur; böylece anlık değişiklikler panele yansır.
+// ============================================================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BusinessMainScreen(onNavigateToLogin: () -> Unit) {
@@ -109,8 +121,10 @@ fun BusinessMainScreen(onNavigateToLogin: () -> Unit) {
     }
 }
 
-// ── Tab 0: Gelen Randevular ─────────────────────────────────────────────────
-
+// ── AppointmentsTab (Sekme 0) ─────────────────────────────────────────────────
+// İşletmeye gelen tüm randevuları listeler
+// filterStatus → null = tümü, değer atanınca sadece o durum gösterilir
+// refreshKey → onayla/reddet/tamamla sonrası listeyi zorla günceller
 @Composable
 private fun AppointmentsTab(business: Business?, accentColor: Color) {
     val businessName = business?.name ?: ""
@@ -334,7 +348,10 @@ private fun ProviderStatusBadge(status: AppointmentStatus) {
     }
 }
 
-// ── Tab 1: Ücretlendirme ────────────────────────────────────────────────────
+// ── PricingTab (Sekme 1) ──────────────────────────────────────────────────────
+// İşletmenin hizmet listesini yönetir
+// Mevcut hizmetler silinebilir; yeni hizmet adı+fiyatla eklenir
+// AppState.addBusinessService() → startingPrice otomatik güncellenir (en düşük fiyat)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -491,7 +508,10 @@ private fun PricingTab(
     }
 }
 
-// ── Tab 2: İşletme Profili ──────────────────────────────────────────────────
+// ── BusinessProfileTab (Sekme 2) ──────────────────────────────────────────────
+// İşletmenin profil bilgilerini ve hizmet ayarlarını gösterir
+// Vale ve Yerinde Hizmet Switch'leri AppState.setBusinessValet/setBusinessOnSite ile
+// anlık olarak kaydedilir; müşteri randevu ekranı bu değerleri görür
 
 @Composable
 private fun BusinessProfileTab(business: Business?, accentColor: Color) {

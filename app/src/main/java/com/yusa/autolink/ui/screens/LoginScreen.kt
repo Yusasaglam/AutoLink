@@ -25,19 +25,31 @@ import androidx.compose.ui.unit.sp
 import com.yusa.autolink.data.AppState
 import com.yusa.autolink.ui.theme.*
 
-// Giriş ekranı — kullanıcıdan e-posta ve şifre alır, AppState.login() ile doğrular.
+// ============================================================
+// LoginScreen — E-posta + şifre ile giriş ekranı
+//
+// Akış:
+//   1. Kullanıcı e-posta ve şifre girer
+//   2. Validasyon: boş alan kontrolü
+//   3. AppState.login() → kayıtlı kullanıcılar arasında arar
+//   4. Başarılıysa onNavigateToHome() → AppNavigation hesap tipine
+//      göre MAIN veya BUSINESS_MAIN ekranına yönlendirir
+//   5. Başarısızsa kırmızı hata mesajı gösterilir
+// ============================================================
 @Composable
 fun LoginScreen(
-    onNavigateToHome: () -> Unit,     // Başarılı girişte ana ekrana geç
-    onNavigateToRegister: () -> Unit  // Kayıt ol linkine tıklandığında
+    onNavigateToHome: () -> Unit,     // Başarılı girişte çağrılır — AppNavigation yönlendirir
+    onNavigateToRegister: () -> Unit  // "Kayıt Ol" linkine tıklandığında
 ) {
+    // remember { } → Composable yeniden çizilse bile değer korunur (state yönetimi)
     var email           by remember { mutableStateOf("") }
     var password        by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) }  // Şifre göster/gizle
+    var passwordVisible by remember { mutableStateOf(false) }  // Göz ikonu ile şifre göster/gizle
     var errorMessage    by remember { mutableStateOf("") }
 
-    // Türkçe karakterleri (ş, ğ, ü, ö, ç, ı…) filtreleyen yardımcı fonksiyon.
-    // E-posta ve şifre alanlarında bu karakterler geçersizdir.
+    // E-posta ve şifre alanlarında Türkçe karakter girişini engeller.
+    // E-posta formatı Türkçe karakter kabul etmez (ş, ğ, ü, ö, ç, ı).
+    // filter { } → koşulu sağlamayan karakterleri siler.
     fun stripTurkish(s: String) = s.filter { it !in "şŞğĞüÜöÖçÇıİ" }
 
     Column(
@@ -47,13 +59,16 @@ fun LoginScreen(
             .padding(horizontal = 24.dp),
         verticalArrangement = Arrangement.Center
     ) {
+        // weight(0.4f) ve weight(0.6f) → boş alanları oransal dağıtır,
+        // içerik ekranın tam ortasından biraz yukarıda durur
         Spacer(modifier = Modifier.weight(0.4f))
 
-        // Logo ve başlık bölümü
+        // ── Logo ve başlık ───────────────────────────────────────────
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.fillMaxWidth()
         ) {
+            // Mavi kare içinde araba ikonu — uygulama logosu
             Box(
                 modifier = Modifier
                     .size(80.dp)
@@ -75,7 +90,9 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(48.dp))
 
-        // E-posta alanı
+        // ── E-posta alanı ────────────────────────────────────────────
+        // isError → hata varsa kenarlık kırmızıya döner
+        // keyboardType = Email → telefon klavyesinde @ sembolü öne çıkar
         Text("E-posta", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
         Spacer(modifier = Modifier.height(8.dp))
         OutlinedTextField(
@@ -97,7 +114,10 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Şifre alanı — göz ikonu ile göster/gizle
+        // ── Şifre alanı ──────────────────────────────────────────────
+        // PasswordVisualTransformation → karakterleri nokta (•) olarak gösterir
+        // VisualTransformation.None      → karakterleri olduğu gibi gösterir
+        // Göz ikonu tıklanınca passwordVisible toggle ediliyor
         Text("Şifre", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
         Spacer(modifier = Modifier.height(8.dp))
         OutlinedTextField(
@@ -114,7 +134,6 @@ fun LoginScreen(
                     )
                 }
             },
-            // Şifre görünürse metin, gizliyse nokta karakterleri göster
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             singleLine    = true,
             shape         = RoundedCornerShape(12.dp),
@@ -127,7 +146,7 @@ fun LoginScreen(
             )
         )
 
-        // Hata mesajı — boş alan veya yanlış bilgi durumunda gösterilir
+        // Hata mesajı — boş alan veya yanlış bilgi durumunda görünür hale gelir
         if (errorMessage.isNotEmpty()) {
             Spacer(modifier = Modifier.height(8.dp))
             Text(
@@ -139,13 +158,14 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Giriş yap butonu
+        // ── Giriş butonu ─────────────────────────────────────────────
+        // when { } → sırayla kontrol eder, ilk doğru koşulda durur
+        // AppState.login() → e-posta/şifreyi bulursa true, bulamazsa false döner
         Button(
             onClick = {
                 when {
                     email.isBlank()    -> errorMessage = "E-posta adresi boş bırakılamaz."
                     password.isBlank() -> errorMessage = "Şifre boş bırakılamaz."
-                    // AppState.login() e-posta ve şifreyi kontrol eder
                     !AppState.login(email, password) -> errorMessage = "E-posta veya şifre hatalı."
                     else -> onNavigateToHome()
                 }
@@ -159,7 +179,9 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // "Hesabınız yok mu? Kayıt Ol" linki — buildAnnotatedString ile iki farklı renk
+        // ── Kayıt Ol linki ───────────────────────────────────────────
+        // buildAnnotatedString → tek Text'te iki farklı renk/stil kullanmayı sağlar
+        // withStyle(SpanStyle) → belirtilen aralıktaki metne özel stil uygular
         Text(
             text = buildAnnotatedString {
                 withStyle(SpanStyle(color = TextSecondary)) { append("Hesabınız yok mu?  ") }
