@@ -41,7 +41,7 @@ fun MyAppointmentsScreen() {
     // refreshKey her artışında remember(refreshKey) bloğu yeniden hesaplanır
     // → AppState.userAppointments listesi tekrar okunur, liste güncellenir
     var refreshKey by remember { mutableIntStateOf(0) }
-    val appointments = remember(refreshKey) { AppState.userAppointments.toList() }
+    val appointments = remember(refreshKey) { AppState.userAppointments.sortedByDescending { it.id } }
 
     Scaffold(
         topBar = {

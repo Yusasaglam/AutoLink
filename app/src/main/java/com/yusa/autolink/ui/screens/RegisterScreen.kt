@@ -54,7 +54,7 @@ fun RegisterScreen(
     var password            by remember { mutableStateOf("") }
     var errorMessage        by remember { mutableStateOf("") }
 
-    // E-posta ve şifre alanlarından Türkçe karakterleri siler
+    // E-posta adreslerinde Türkçe karakter geçersizdir; sadece e-posta için kullanılır
     fun stripTurkish(s: String) = s.filter { it !in "şŞğĞüÜöÖçÇıİ" }
 
     Scaffold(
@@ -135,7 +135,7 @@ fun RegisterScreen(
             // Şifre alanı
             OutlinedTextField(
                 value         = password,
-                onValueChange = { password = stripTurkish(it) },
+                onValueChange = { password = it },
                 label         = { Text("Şifre") },
                 leadingIcon   = { Icon(Icons.Filled.Lock, null, tint = TextSecondary) },
                 visualTransformation = PasswordVisualTransformation(),
